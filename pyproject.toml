@@ -1,0 +1,188 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcp_arena"
+version = "0.1.0"
+description = "An opinionated Python library for building MCP (Model Context Protocol) servers with ready-to-use presets and tools."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [
+    { name = "Satyam Singh", email = "satyamsingh7734@gmail.com" }
+]
+keywords = ["mcp", "model-context-protocol", "agents", "tools", "servers"]
+
+dependencies = [
+    "boto3>=1.42.15",
+    "langchain>=1.2.0",
+    "langchain-chroma>=1.1.0",
+    "langchain-community>=0.4.1",
+    "langchain-groq>=1.1.1",
+    "langchain-huggingface>=1.2.0",
+    "langchain-openai>=1.1.6",
+    "mcp>=1.25.0",
+    "notion-client>=2.7.0",
+    "psutil>=7.2.0",
+    "psycopg2-binary>=2.9.11",
+    "pyautogui>=0.9.54",
+    "pygithub>=2.8.1",
+    "pymongo>=4.15.5",
+    "redis>=7.1.0",
+    "sentence-transformers>=5.2.0",
+    "slack-sdk>=3.39.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+# Core MCP dependencies
+core = ["mcp>=1.25.0", "python-dotenv>=1.0.0"]
+
+# Development platform presets
+github = ["PyGithub>=2.8.1"]
+gitlab = ["python-gitlab>=4.0.0"]
+bitbucket = ["atlassian-python-api>=3.41.0"]
+
+# Data & storage presets
+postgres = ["psycopg2-binary>=2.9.0"]
+mongodb = ["pymongo>=4.6.0"]
+redis = ["redis>=7.1.0"]
+vectordb = ["sentence-transformers>=5.2.0", "chromadb>=0.4.0"]
+
+# Communication presets
+slack = ["slack-sdk>=3.26.0"]
+discord = ["discord.py>=2.3.0"]
+teams = ["msal>=1.24.0", "microsoft-graph>=1.0.0"]
+
+# Productivity presets
+notion = ["notion-client>=2.2.0"]
+confluence = ["atlassian-python-api>=3.41.0"]
+jira = ["atlassian-python-api>=3.41.0"]
+
+# Cloud service presets
+aws = ["boto3>=1.34.0"]
+azure = ["azure-storage-blob>=12.19.0", "azure-identity>=1.15.0"]
+gcp = ["google-cloud-storage>=2.10.0", "google-auth>=2.23.0"]
+
+# System operations
+local_operation = ["psutil>=7.2.0", "pyautogui>=0.9.54"]
+docker = ["docker>=6.1.0"]
+kubernetes = ["kubernetes>=28.1.0"]
+
+# Agent framework dependencies
+agents = [
+    "langchain>=1.2.0",
+    "langchain-community>=0.4.1",
+    "langchain-groq>=1.1.1",
+    "langchain-openai>=1.1.6",
+    "langchain-huggingface>=1.2.0",
+    "langchain-chroma>=1.1.0",
+]
+
+# Development dependencies
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+]
+
+# All presets (excluding dev dependencies)
+all = [
+    "PyGithub>=2.8.1",
+    "python-gitlab>=4.0.0",
+    "atlassian-python-api>=3.41.0",
+    "psycopg2-binary>=2.9.0",
+    "pymongo>=4.6.0",
+    "redis>=7.1.0",
+    "sentence-transformers>=5.2.0",
+    "chromadb>=0.4.0",
+    "slack-sdk>=3.26.0",
+    "discord.py>=2.3.0",
+    "msal>=1.24.0",
+    "microsoft-graph>=1.0.0",
+    "notion-client>=2.2.0",
+    "boto3>=1.34.0",
+    "azure-storage-blob>=12.19.0",
+    "azure-identity>=1.15.0",
+    "google-cloud-storage>=2.10.0",
+    "google-auth>=2.23.0",
+    "psutil>=7.2.0",
+    "pyautogui>=0.9.54",
+    "docker>=6.1.0",
+    "kubernetes>=28.1.0",
+    "langchain>=1.2.0",
+    "langchain-community>=0.4.1",
+    "langchain-groq>=1.1.1",
+    "langchain-openai>=1.1.6",
+    "langchain-huggingface>=1.2.0",
+    "langchain-chroma>=1.1.0",
+]
+
+# Complete installation (includes dev dependencies)
+complete = [
+    "PyGithub>=2.8.1",
+    "python-gitlab>=4.0.0",
+    "atlassian-python-api>=3.41.0",
+    "psycopg2-binary>=2.9.0",
+    "pymongo>=4.6.0",
+    "redis>=7.1.0",
+    "sentence-transformers>=5.2.0",
+    "chromadb>=0.4.0",
+    "slack-sdk>=3.26.0",
+    "discord.py>=2.3.0",
+    "msal>=1.24.0",
+    "microsoft-graph>=1.0.0",
+    "notion-client>=2.2.0",
+    "boto3>=1.34.0",
+    "azure-storage-blob>=12.19.0",
+    "azure-identity>=1.15.0",
+    "google-cloud-storage>=2.10.0",
+    "google-auth>=2.23.0",
+    "psutil>=7.2.0",
+    "pyautogui>=0.9.54",
+    "docker>=6.1.0",
+    "kubernetes>=28.1.0",
+    "langchain>=1.2.0",
+    "langchain-community>=0.4.1",
+    "langchain-groq>=1.1.1",
+    "langchain-openai>=1.1.6",
+    "langchain-huggingface>=1.2.0",
+    "langchain-chroma>=1.1.0",
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.7.0",
+    "pre-commit>=3.5.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/SatyamSingh8306/mcp_arena"
+Documentation = "https://github.com/SatyamSingh8306/mcp_arena"
+Repository = "https://github.com/SatyamSingh8306/mcp_arena.git"
+Issues = "https://github.com/SatyamSingh8306/mcp_arena/issues"
+
+[tool.hatch.version]
+path = "mcp_arena/__init__.py"
+
+[tool.black]
+line-length = 100
+target-version = ["py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.mypy]
+python_version = "3.12"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false

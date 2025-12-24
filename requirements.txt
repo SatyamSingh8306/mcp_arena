@@ -1,0 +1,25 @@
+mcp
+langchain
+langchain-groq
+
+#mcp-servers dependencies
+PyGithub
+slack-sdk
+notion-client
+psycopg2-binary
+pymongo
+boto3
+
+psutil
+pyautogui
+
+langchain_community
+
+#vectordb
+langchain_huggingface
+langchain-openai
+sentence-transformers
+langchain-chroma
+
+#redis
+redis
