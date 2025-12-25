@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
-from typing import Literal, Annotated, Optional, Collection, List, Callable, Any
+from typing import Literal, Annotated, Optional, Collection, List
 from mcp.server.fastmcp import FastMCP
-import functools
 
 class BaseMCPServer(ABC):
     def __init__(
@@ -70,60 +69,16 @@ class BaseMCPServer(ABC):
 
         if auto_register_tools:
             self._register_tools()
+        self.mcp_server.add_tool()
 
     @abstractmethod
     def _register_tools(self) -> None:
         """Register all tools with the MCP server."""
         pass
+    
+    def __getattr__(self, name):
+        return getattr(self.mcp_server, name)
 
-    def add_tool(self, tool: Annotated[Callable, "Tool function to add"], 
-                 name: Optional[str] = None) -> Callable:
-        """Register a tool with the MCP server.
-        
-        Args:
-            tool: Tool function to add
-            name: Optional custom name for the tool (defaults to function name)
-            
-        Returns:
-            The decorated tool function
-        """
-        tool_name = name or tool.__name__
-        description = tool.__doc__ or f"{tool_name} tool"
-        
-        # Register the tool
-        decorated_tool = self.mcp_server.tool(
-            name=tool_name,
-            description=description
-        )(tool)
-        
-        # Track registered tools
-        self._registered_tools.append(tool_name)
-        
-        return decorated_tool
-    
-    def add_tools(self, tools: Annotated[List[Callable], "List of tools to add"]):
-        """Register multiple tools at once.
-        
-        Args:
-            tools: List of tool functions to add
-        """
-        for tool in tools:
-            self.add_tool(tool)
-    
-    def add_tool_decorator(self, name: Optional[str] = None):
-        """Create a decorator to add tools.
-        
-        Usage:
-            @server.add_tool_decorator()
-            def my_tool(): ...
-            
-            @server.add_tool_decorator(name="custom_name")
-            def another_tool(): ...
-        """
-        def decorator(func: Callable) -> Callable:
-            return self.add_tool(func, name=name)
-        return decorator
-    
     def get_registered_tools(self) -> List[str]:
         """Get list of registered tool names.
         

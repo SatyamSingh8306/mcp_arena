@@ -33,23 +33,107 @@ pip install mcp-arena[all]
 ### Basic Usage
 
 ```python
-from mcp_arena.presets.github import GithubMCPServer
+from mcp_arena.presents.github import GithubMCPServer
 
 # Zero-config GitHub MCP server
-server = GithubMCPServer(token="your_github_token")
-server.run(port=8000)
+mcp_server = GithubMCPServer(token="your_github_token")
+mcp_server.run()
+```
+
+### Using Tools Directly
+
+```python
+from mcp_arena.tools.github import GithubTools
+from mcp_arena.presents.github import GithubMCPServer
+
+# Create GitHub MCP server first
+mcp_server = GithubMCPServer(token="your_token")
+
+# Create tools wrapper
+tool = GithubTools(server=mcp_server)
+tools = tool.get_list_of_tools()
 ```
 
 ### With Agent Orchestration
 
 ```python
-from mcp_arena.presets.github import GithubMCPServer
-from mcp_arena.agent.react import ReActAgent
+from mcp_arena.presents.github import GithubMCPServer
+from mcp_arena.agent.react import ReactAgent
 
-# Add intelligent agent
-agent = ReActAgent(name="github-agent")
-server = GithubMCPServer(token="your_token", agents=[agent])
-server.run()
+# Create MCP server
+mcp_server = GithubMCPServer(token="your_token")
+
+# Create agent separately
+agent = ReactAgent(name="github-agent")
+
+# Run the server
+mcp_server.run()
+```
+
+### LangChain Integration
+
+#### Using MCP Arena Wrapper
+
+```python
+from mcp_arena.wrapper.langchain_wrapper import MCPLangChainWrapper
+from mcp_arena.presents.github import GithubMCPServer
+
+# Create MCP server
+github_server = GithubMCPServer(token="your_token")
+
+# Wrap with LangChain
+wrapper = MCPLangChainWrapper(
+    servers={"github": github_server},
+    auto_start=True
+)
+
+# Connect and create agent
+await wrapper.connect()
+agent = wrapper.create_agent(
+    llm="gpt-4-turbo",
+    system_prompt="You are a GitHub assistant"
+)
+```
+
+#### Direct langchain_mcp_adapters Usage
+
+```python
+from langchain_mcp_adapters.client import MultiServerMCPClient  
+from langchain.agents import create_agent
+from mcp_arena.presents.github import GithubMCPServer
+
+# Start GitHub MCP server in background
+github_server = GithubMCPServer(token="your_token", transport="stdio")
+github_server.run()
+
+# Create client with multiple servers
+client = MultiServerMCPClient(  
+    {
+        "github": {
+            "transport": "stdio",
+            "command": "python",
+            "args": ["/path/to/github_server_script.py"],
+        },
+        "math": {
+            "transport": "http",
+            "url": "http://localhost:8001/mcp",
+        }
+    }
+)
+
+tools = await client.get_tools()  
+agent = create_agent(
+    "claude-sonnet-4-5-20250929",
+    tools  
+)
+
+# Use the agent
+github_response = await agent.ainvoke(
+    {"messages": [{"role": "user", "content": "List my GitHub repositories"}]}
+)
+math_response = await agent.ainvoke(
+    {"messages": [{"role": "user", "content": "what's (3 + 5) x 12?"}]}
+)
 ```
 
 ## 📚 Available Presets
@@ -225,16 +309,16 @@ pip install mcp-arena[github,gitlab,bitbucket]
 pip install mcp-arena[postgres,mongodb,redis,vectordb]
 
 # Communication
-pip install mcp-arena[slack,discord,teams]
+pip install mcp-arena[slack]
 
 # Productivity
 pip install mcp-arena[notion,confluence,jira]
 
 # Cloud services
-pip install mcp-arena[aws,azure,gcp]
+pip install mcp-arena[aws,docker,kubernetes]
 
 # System operations
-pip install mcp-arena[local_operation,docker,kubernetes]
+pip install mcp-arena[local_operation]
 
 # Agent framework
 pip install mcp-arena[agents]
