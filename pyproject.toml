@@ -1,174 +1,147 @@
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling>=1.24.0"]
 build-backend = "hatchling.build"
 
 [project]
 name = "mcp_arena"
 version = "0.1.0"
-description = "An opinionated Python library for building MCP (Model Context Protocol) servers with ready-to-use presets and tools."
+description = "An opinionated Python library for building MCP (Model Context Protocol) servers with ready-to-use presets, agents, and tools."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
+
 authors = [
     { name = "Satyam Singh", email = "satyamsingh7734@gmail.com" }
 ]
-keywords = ["mcp", "model-context-protocol", "agents", "tools", "servers"]
 
-dependencies = [
-    "boto3>=1.42.15",
-    "langchain>=1.2.0",
-    "langchain-chroma>=1.1.0",
-    "langchain-community>=0.4.1",
-    "langchain-groq>=1.1.1",
-    "langchain-huggingface>=1.2.0",
-    "langchain-openai>=1.1.6",
-    "mcp>=1.25.0",
-    "notion-client>=2.7.0",
-    "psutil>=7.2.0",
-    "psycopg2-binary>=2.9.11",
-    "pyautogui>=0.9.54",
-    "pygithub>=2.8.1",
-    "pymongo>=4.15.5",
-    "redis>=7.1.0",
-    "sentence-transformers>=5.2.0",
-    "slack-sdk>=3.39.0",
-    "python-dotenv>=1.0.0",
+keywords = [
+    "mcp",
+    "model-context-protocol",
+    "agents",
+    "ai",
+    "llm",
+    "tooling",
+    "servers"
 ]
 
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent"
+]
+
+# ------------------------
+# Minimal core dependencies
+# ------------------------
+dependencies = [
+    "mcp>=1.25,<2.0",
+    "python-dotenv>=1.0,<2.0",
+    "typing-extensions>=4.8,<5.0"
+]
+
+# ------------------------
+# Optional dependency groups
+# ------------------------
 [project.optional-dependencies]
-# Core MCP dependencies
-core = ["mcp>=1.25.0", "python-dotenv>=1.0.0"]
 
-# Development platform presets
-github = ["PyGithub>=2.8.1"]
-gitlab = ["python-gitlab>=4.0.0"]
-bitbucket = ["atlassian-python-api>=3.41.0"]
+# Core extensions
+core = [
+    "mcp>=1.25,<2.0",
+    "python-dotenv>=1.0,<2.0"
+]
 
-# Data & storage presets
-postgres = ["psycopg2-binary>=2.9.0"]
-mongodb = ["pymongo>=4.6.0"]
-redis = ["redis>=7.1.0"]
-vectordb = ["sentence-transformers>=5.2.0", "chromadb>=0.4.0"]
-
-# Communication presets
-slack = ["slack-sdk>=3.26.0"]
-discord = ["discord.py>=2.3.0"]
-teams = ["msal>=1.24.0", "microsoft-graph>=1.0.0"]
-
-# Productivity presets
-notion = ["notion-client>=2.2.0"]
-confluence = ["atlassian-python-api>=3.41.0"]
-jira = ["atlassian-python-api>=3.41.0"]
-
-# Cloud service presets
-aws = ["boto3>=1.34.0"]
-azure = ["azure-storage-blob>=12.19.0", "azure-identity>=1.15.0"]
-gcp = ["google-cloud-storage>=2.10.0", "google-auth>=2.23.0"]
-
-# System operations
-local_operation = ["psutil>=7.2.0", "pyautogui>=0.9.54"]
-docker = ["docker>=6.1.0"]
-kubernetes = ["kubernetes>=28.1.0"]
-
-# Agent framework dependencies
+# Agent framework support
 agents = [
-    "langchain>=1.2.0",
-    "langchain-community>=0.4.1",
-    "langchain-groq>=1.1.1",
-    "langchain-openai>=1.1.6",
-    "langchain-huggingface>=1.2.0",
-    "langchain-chroma>=1.1.0",
+    "langchain>=1.2,<2.0",
+    "langchain-community>=0.4,<1.0",
+    "langchain-groq>=1.1,<2.0",
+    "langchain-openai>=1.1,<2.0",
+    "langchain-huggingface>=1.2,<2.0",
+    "langchain-chroma>=1.1,<2.0",
+    "langchain-mcp-adapters>=0.2,<1.0",
+    "langchain-agent>=0.1,<1.0"
+]
+
+# Git platforms
+github = ["PyGithub>=2.8,<3.0"]
+gitlab = ["python-gitlab>=7.0,<8.0"]
+bitbucket = ["atlassian-python-api>=4.0,<5.0"]
+
+# Databases / storage
+postgres = ["psycopg2-binary>=2.9,<3.0"]
+mongodb = ["pymongo>=4.6,<5.0"]
+redis = ["redis>=7.1,<8.0"]
+vectordb = [
+    "sentence-transformers>=5.2,<6.0",
+    "chromadb>=0.4,<1.0"
+]
+
+# Productivity tools
+notion = ["notion-client>=2.7,<3.0"]
+confluence = ["atlassian-python-api>=4.0,<5.0", "html2text>=2024.0"]
+jira = ["atlassian-python-api>=4.0,<5.0"]
+
+# Communication
+slack = ["slack-sdk>=3.39,<4.0"]
+
+# Cloud & infra
+aws = ["boto3>=1.34,<2.0"]
+docker = ["docker>=7.1,<8.0"]
+kubernetes = ["kubernetes>=28.1,<34.0"]
+
+# Local system operations (opt-in ONLY)
+local_operation = [
+    "psutil>=7.2,<8.0",
+    "pyautogui>=0.9,<1.0"
 ]
 
 # Development dependencies
 dev = [
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "mypy>=1.7.0",
-    "pre-commit>=3.5.0",
+    "pytest>=8.0,<9.0",
+    "pytest-asyncio>=0.23,<1.0",
+    "black>=24.0,<26.0",
+    "isort>=5.12,<6.0",
+    "mypy>=1.7,<2.0",
+    "ruff>=0.12,<1.0",
+    "pre-commit>=3.5,<4.0"
 ]
 
-# All presets (excluding dev dependencies)
+# Everything except dev
 all = [
-    "PyGithub>=2.8.1",
-    "python-gitlab>=4.0.0",
-    "atlassian-python-api>=3.41.0",
-    "psycopg2-binary>=2.9.0",
-    "pymongo>=4.6.0",
-    "redis>=7.1.0",
-    "sentence-transformers>=5.2.0",
-    "chromadb>=0.4.0",
-    "slack-sdk>=3.26.0",
-    "discord.py>=2.3.0",
-    "msal>=1.24.0",
-    "microsoft-graph>=1.0.0",
-    "notion-client>=2.2.0",
-    "boto3>=1.34.0",
-    "azure-storage-blob>=12.19.0",
-    "azure-identity>=1.15.0",
-    "google-cloud-storage>=2.10.0",
-    "google-auth>=2.23.0",
-    "psutil>=7.2.0",
-    "pyautogui>=0.9.54",
-    "docker>=6.1.0",
-    "kubernetes>=28.1.0",
-    "langchain>=1.2.0",
-    "langchain-community>=0.4.1",
-    "langchain-groq>=1.1.1",
-    "langchain-openai>=1.1.6",
-    "langchain-huggingface>=1.2.0",
-    "langchain-chroma>=1.1.0",
+    "mcp_arena[agents,github,gitlab,bitbucket,postgres,mongodb,redis,vectordb,notion,confluence,jira,slack,aws,docker,kubernetes,local_operation]"
 ]
 
-# Complete installation (includes dev dependencies)
+# Full install (contributors / CI)
 complete = [
-    "PyGithub>=2.8.1",
-    "python-gitlab>=4.0.0",
-    "atlassian-python-api>=3.41.0",
-    "psycopg2-binary>=2.9.0",
-    "pymongo>=4.6.0",
-    "redis>=7.1.0",
-    "sentence-transformers>=5.2.0",
-    "chromadb>=0.4.0",
-    "slack-sdk>=3.26.0",
-    "discord.py>=2.3.0",
-    "msal>=1.24.0",
-    "microsoft-graph>=1.0.0",
-    "notion-client>=2.2.0",
-    "boto3>=1.34.0",
-    "azure-storage-blob>=12.19.0",
-    "azure-identity>=1.15.0",
-    "google-cloud-storage>=2.10.0",
-    "google-auth>=2.23.0",
-    "psutil>=7.2.0",
-    "pyautogui>=0.9.54",
-    "docker>=6.1.0",
-    "kubernetes>=28.1.0",
-    "langchain>=1.2.0",
-    "langchain-community>=0.4.1",
-    "langchain-groq>=1.1.1",
-    "langchain-openai>=1.1.6",
-    "langchain-huggingface>=1.2.0",
-    "langchain-chroma>=1.1.0",
-    "pytest>=7.4.0",
-    "pytest-asyncio>=0.21.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "mypy>=1.7.0",
-    "pre-commit>=3.5.0",
+    "mcp_arena[all,dev]"
 ]
 
+# ------------------------
+# Project URLs
+# ------------------------
 [project.urls]
 Homepage = "https://github.com/SatyamSingh8306/mcp_arena"
 Documentation = "https://github.com/SatyamSingh8306/mcp_arena"
 Repository = "https://github.com/SatyamSingh8306/mcp_arena.git"
 Issues = "https://github.com/SatyamSingh8306/mcp_arena/issues"
 
+# ------------------------
+# Hatch build config
+# ------------------------
+[tool.hatch.build.targets.wheel]
+packages = ["mcp_arena"]
+
 [tool.hatch.version]
 path = "mcp_arena/__init__.py"
 
+# ------------------------
+# Tooling
+# ------------------------
 [tool.black]
 line-length = 100
 target-version = ["py312"]

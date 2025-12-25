@@ -23,3 +23,13 @@ langchain-chroma
 
 #redis
 redis
+
+#docker 
+docker
+
+python-gitlab
+
+atlassian-python-api
+html2text
+
+langchain-mcp-adapters

@@ -7,6 +7,12 @@ from .postgres import PostgresMCPServer
 from .slack import SlackMCPServer
 from .vectordb import VectorDBMCPServer
 from .redis import RedisMCPServer
+from .jira import JiraMCPServer
+from .gitlab import GitLabMCPServer
+from .docker import DockerMCPServer
+from .bitbucket import BitbucketMCPServer
+from .confluence import ConfluenceMCPServer
 
 __all__ = ["S3MCPServer","GithubMCPServer", "LocalOperationsMCPServer", "MongoDBMCPServer","NotionMCPServer","PostgresMCPServer",
-           "SlackMCPServer", "VectorDBMCPServer","RedisMCPServer"]
+           "SlackMCPServer", "VectorDBMCPServer","RedisMCPServer","JiraMCPServer","GitLabMCPServer","DockerMCPServer","BitbucketMCPServer",
+           "ConfluenceMCPServer"]
