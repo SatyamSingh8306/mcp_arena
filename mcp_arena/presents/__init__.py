@@ -1,18 +1,20 @@
-from .aws import S3MCPServer
-from .github import GithubMCPServer
-from .local_operation import LocalOperationsMCPServer
-from .mongo import MongoDBMCPServer
-from .notion import NotionMCPServer
-from .postgres import PostgresMCPServer
-from .slack import SlackMCPServer
-from .vectordb import VectorDBMCPServer
-from .redis import RedisMCPServer
-from .jira import JiraMCPServer
-from .gitlab import GitLabMCPServer
-from .docker import DockerMCPServer
-from .bitbucket import BitbucketMCPServer
-from .confluence import ConfluenceMCPServer
+import importlib
+from typing import TYPE_CHECKING
 
-__all__ = ["S3MCPServer","GithubMCPServer", "LocalOperationsMCPServer", "MongoDBMCPServer","NotionMCPServer","PostgresMCPServer",
-           "SlackMCPServer", "VectorDBMCPServer","RedisMCPServer","JiraMCPServer","GitLabMCPServer","DockerMCPServer","BitbucketMCPServer",
-           "ConfluenceMCPServer"]
+if TYPE_CHECKING:
+    from .github import GithubMCPServer
+    from .local_operation import LocalOperationsMCPServer
+    from .vectordb import VectorDBMCPServer
+
+def __getattr__(name: str):
+    """Lazy import mechanism for optional MCP servers."""
+    if name == "LocalOperationsMCPServer":
+        return importlib.import_module(".local_operation", __name__).LocalOperationsMCPServer
+    elif name == "VectorDBMCPServer":
+        return importlib.import_module(".vectordb", __name__).VectorDBMCPServer
+    elif name == "GithubMCPServer":
+        return importlib.import_module(".github", __name__).GithubMCPServer
+    else:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+__all__ = ["GithubMCPServer", "LocalOperationsMCPServer", "VectorDBMCPServer"]

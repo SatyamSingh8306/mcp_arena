@@ -69,7 +69,6 @@ class BaseMCPServer(ABC):
 
         if auto_register_tools:
             self._register_tools()
-        self.mcp_server.add_tool()
 
     @abstractmethod
     def _register_tools(self) -> None:

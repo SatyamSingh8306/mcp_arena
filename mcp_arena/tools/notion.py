@@ -1,7 +1,7 @@
 from mcp_arena.tools import BaseMCPTool
-from mcp_arena.presents import NotionMCPServer
+from mcp_arena.presents.notion import NotionMCPServer
 
-class GithubTools(BaseMCPTool):
+class NotionMCPTools(BaseMCPTool):
     def __init__(self,server : NotionMCPServer):
         super().__init__(server)
 

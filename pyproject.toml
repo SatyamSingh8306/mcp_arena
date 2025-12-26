@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp_arena"
-version = "0.1.0"
+version = "0.1.2"
 description = "An opinionated Python library for building MCP (Model Context Protocol) servers with ready-to-use presets, agents, and tools."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -36,12 +36,22 @@ classifiers = [
 ]
 
 # ------------------------
-# Minimal core dependencies
+# Minimal core dependencies (includes presents module)
 # ------------------------
 dependencies = [
     "mcp>=1.25,<2.0",
     "python-dotenv>=1.0,<2.0",
-    "typing-extensions>=4.8,<5.0"
+    "typing-extensions>=4.8,<5.0",
+    "PyGithub>=2.8,<3.0",
+    "psutil>=7.2,<8.0",
+    "pyautogui>=0.9,<1.0",
+    "sentence-transformers>=5.2,<6.0",
+    "chromadb>=0.4,<1.0",
+    "langchain>=1.2,<2.0",
+    "langchain-community>=0.4,<1.0",
+    "langchain-huggingface>=1.2,<2.0",
+    "langchain-openai>=1.1,<2.0",
+    "langchain-chroma>=1.1,<2.0"
 ]
 
 # ------------------------
