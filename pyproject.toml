@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp_arena"
-version = "0.1.2"
-description = "An opinionated Python library for building MCP (Model Context Protocol) servers with ready-to-use presets, agents, and tools."
+version = "0.1.5"
+description = "An opinionated Python library for building MCP (Model Context Protocol) servers with presets, agents, and tools."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
@@ -14,40 +14,32 @@ authors = [
     { name = "Satyam Singh", email = "satyamsingh7734@gmail.com" }
 ]
 
-keywords = [
-    "mcp",
-    "model-context-protocol",
-    "agents",
-    "ai",
-    "llm",
-    "tooling",
-    "servers"
-]
+keywords = ["mcp", "model-context-protocol", "agents", "ai", "llm"]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "Topic :: Software Development :: Libraries",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "License :: OSI Approved :: MIT License",
-    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Operating System :: OS Independent"
 ]
 
 # ------------------------
-# Minimal core dependencies (includes presents module)
+# Core dependencies (SAFE)
 # ------------------------
 dependencies = [
     "mcp>=1.25,<2.0",
     "python-dotenv>=1.0,<2.0",
     "typing-extensions>=4.8,<5.0",
-    "PyGithub>=2.8,<3.0",
+
     "psutil>=7.2,<8.0",
-    "pyautogui>=0.9,<1.0",
+    "PyGithub>=2.8,<3.0",
     "sentence-transformers>=5.2,<6.0",
-    "chromadb>=0.4,<1.0",
+    "chromadb>=1.3.5,<2.0",
+
+    # LangChain stack (aligned)
     "langchain>=1.2,<2.0",
+    "langchain-core>=1.2,<2.0",
     "langchain-community>=0.4,<1.0",
     "langchain-huggingface>=1.2,<2.0",
     "langchain-openai>=1.1,<2.0",
@@ -59,95 +51,64 @@ dependencies = [
 # ------------------------
 [project.optional-dependencies]
 
-# Core extensions
-core = [
-    "mcp>=1.25,<2.0",
-    "python-dotenv>=1.0,<2.0"
-]
-
-# Agent framework support
 agents = [
-    "langchain>=1.2,<2.0",
-    "langchain-community>=0.4,<1.0",
-    "langchain-groq>=1.1,<2.0",
-    "langchain-openai>=1.1,<2.0",
-    "langchain-huggingface>=1.2,<2.0",
-    "langchain-chroma>=1.1,<2.0",
-    "langchain-mcp-adapters>=0.2,<1.0",
+    "langchain-groq>=1.0,<2.0",
+    "langchain-mcp-adapters>=0.1,<1.0",
     "langchain-agent>=0.1,<1.0"
 ]
 
-# Git platforms
+vectordb = [
+    "chromadb>=1.3.5,<2.0",
+    "sentence-transformers>=5.2,<6.0"
+]
+
 github = ["PyGithub>=2.8,<3.0"]
 gitlab = ["python-gitlab>=7.0,<8.0"]
 bitbucket = ["atlassian-python-api>=4.0,<5.0"]
 
-# Databases / storage
 postgres = ["psycopg2-binary>=2.9,<3.0"]
 mongodb = ["pymongo>=4.6,<5.0"]
-redis = ["redis>=7.1,<8.0"]
-vectordb = [
-    "sentence-transformers>=5.2,<6.0",
-    "chromadb>=0.4,<1.0"
-]
+redis = ["redis>=5.0,<8.0"]
 
-# Productivity tools
-notion = ["notion-client>=2.7,<3.0"]
-confluence = ["atlassian-python-api>=4.0,<5.0", "html2text>=2024.0"]
-jira = ["atlassian-python-api>=4.0,<5.0"]
-
-# Communication
-slack = ["slack-sdk>=3.39,<4.0"]
-
-# Cloud & infra
-aws = ["boto3>=1.34,<2.0"]
 docker = ["docker>=7.1,<8.0"]
-kubernetes = ["kubernetes>=28.1,<34.0"]
+kubernetes = ["kubernetes>=28.1,<35.0"]
 
-# Local system operations (opt-in ONLY)
 local_operation = [
     "psutil>=7.2,<8.0",
     "pyautogui>=0.9,<1.0"
 ]
 
-# Development dependencies
 dev = [
     "pytest>=8.0,<9.0",
     "pytest-asyncio>=0.23,<1.0",
     "black>=24.0,<26.0",
     "isort>=5.12,<6.0",
-    "mypy>=1.7,<2.0",
     "ruff>=0.12,<1.0",
+    "mypy>=1.7,<2.0",
     "pre-commit>=3.5,<4.0"
 ]
 
-# Everything except dev
 all = [
-    "mcp_arena[agents,github,gitlab,bitbucket,postgres,mongodb,redis,vectordb,notion,confluence,jira,slack,aws,docker,kubernetes,local_operation]"
+    "mcp_arena[agents,vectordb,github,gitlab,bitbucket,postgres,mongodb,redis,docker,kubernetes,local_operation]"
 ]
 
-# Full install (contributors / CI)
 complete = [
     "mcp_arena[all,dev]"
 ]
 
 # ------------------------
-# Project URLs
+# URLs
 # ------------------------
 [project.urls]
 Homepage = "https://github.com/SatyamSingh8306/mcp_arena"
-Documentation = "https://github.com/SatyamSingh8306/mcp_arena"
-Repository = "https://github.com/SatyamSingh8306/mcp_arena.git"
+Repository = "https://github.com/SatyamSingh8306/mcp_arena"
 Issues = "https://github.com/SatyamSingh8306/mcp_arena/issues"
 
 # ------------------------
-# Hatch build config
+# Hatch
 # ------------------------
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_arena"]
-
-[tool.hatch.version]
-path = "mcp_arena/__init__.py"
 
 # ------------------------
 # Tooling
@@ -158,14 +119,7 @@ target-version = ["py312"]
 
 [tool.isort]
 profile = "black"
-line_length = 100
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
 
 [tool.mypy]
 python_version = "3.12"
-warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
