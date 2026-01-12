@@ -12,7 +12,16 @@ from pathlib import Path
 import psutil
 import socket
 import webbrowser
-import pyautogui
+
+# Handle GUI dependencies gracefully in headless environments
+try:
+    import pyautogui
+    HAS_GUI = True
+except (ImportError, KeyError, Exception) as e:
+    # Handle cases where GUI is not available (CI/CD, headless environments)
+    pyautogui = None
+    HAS_GUI = False
+
 from mcp_arena.mcp.server import BaseMCPServer
 
 @dataclass
@@ -1087,6 +1096,9 @@ class LocalOperationsMCPServer(BaseMCPServer):
             save_path: Annotated[Optional[str], "Path to save screenshot"] = None
         ) -> Dict[str, Any]:
             """Take a screenshot of the screen"""
+            if not HAS_GUI:
+                return {"error": "GUI operations not available in headless environment"}
+            
             try:
                 screenshot = pyautogui.screenshot()
                 
@@ -1107,6 +1119,9 @@ class LocalOperationsMCPServer(BaseMCPServer):
         @self.mcp_server.tool()
         def get_screen_info() -> Dict[str, Any]:
             """Get screen information"""
+            if not HAS_GUI:
+                return {"error": "GUI operations not available in headless environment"}
+            
             try:
                 screen_size = pyautogui.size()
                 mouse_position = pyautogui.position()
