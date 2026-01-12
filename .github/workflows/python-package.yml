@@ -38,12 +38,12 @@ jobs:
         flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Run tests with pytest
       run: |
-        # Run quick tests first
-        python -m pytest tests/test_imports.py::TestImports::test_core_imports -v
-        python -m pytest tests/test_dependencies.py -v
-        python -m pytest tests/test_installation.py -v
-        # Run full test suite
-        python -m pytest tests/ -v --tb=short
+        # Run quick tests first (skip GUI tests in CI)
+        python -m pytest tests/test_imports.py::TestImports::test_core_imports -v -m "not nogui"
+        python -m pytest tests/test_dependencies.py -v -m "not nogui"
+        python -m pytest tests/test_installation.py -v -m "not nogui"
+        # Run full test suite (skip GUI tests in CI)
+        python -m pytest tests/ -v --tb=short -m "not nogui"
 
   publish:
     needs: test
