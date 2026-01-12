@@ -116,13 +116,13 @@ def my_resource():
 
 ```python
 from mcp_arena.presents.github import GithubMCPServer
-from mcp_arena.agent.react import ReactAgent
+from mcp_arena.agent.react_agent import ReactAgent
 
 # Create MCP server
 mcp_server = GithubMCPServer(token="your_token")
 
 # Create agent separately
-agent = ReactAgent(name="github-agent")
+agent = ReactAgent(llm=None, memory_type="conversation")
 
 # Run the server
 mcp_server.run()
@@ -209,6 +209,9 @@ math_response = await agent.ainvoke(
 
 ### Communication
 - **Slack** - Channels, messages, workflows
+- **WhatsApp** - Messaging via Twilio API
+- **Gmail** - Email management and sending
+- **Outlook** - Microsoft 365 email and calendar
 - **Discord** - Servers and channels
 - **Teams** - Microsoft Teams integration
 
@@ -233,12 +236,11 @@ math_response = await agent.ainvoke(
 Self-improving agent that refines responses through iterative refinement.
 
 ```python
-from mcp_arena.agent.reflection import ReflectionAgent
+from mcp_arena.agent.reflection_agent import ReflectionAgent
 
 agent = ReflectionAgent(
-    name="reflector",
-    instructions="Analyze and refine responses",
-    max_iterations=3
+    llm=None,
+    memory_type="conversation"
 )
 ```
 
@@ -246,12 +248,11 @@ agent = ReflectionAgent(
 Systematic reasoning and acting cycle for complex problem-solving.
 
 ```python
-from mcp_arena.agent.react import ReActAgent
+from mcp_arena.agent.react_agent import ReactAgent
 
-agent = ReActAgent(
-    name="react-agent",
-    instructions="Systematically solve problems",
-    max_steps=10
+agent = ReactAgent(
+    llm=None,
+    memory_type="conversation"
 )
 ```
 
@@ -259,11 +260,11 @@ agent = ReActAgent(
 Goal decomposition and step-by-step execution for complex tasks.
 
 ```python
-from mcp_arena.agent.planning import PlanningAgent
+from mcp_arena.agent.planning_agent import PlanningAgent
 
 agent = PlanningAgent(
-    name="planner",
-    instructions="Plan and execute complex workflows"
+    llm=None,
+    memory_type="conversation"
 )
 ```
 
@@ -271,12 +272,21 @@ agent = PlanningAgent(
 Dynamic agent selection based on task requirements.
 
 ```python
-from mcp_arena.agent.router import RouterAgent
+from mcp_arena.agent.router import AgentRouter
 
-router = RouterAgent(
-    name="router",
-    agents=[react_agent, reflect_agent],
-    selection_strategy="auto"
+router = AgentRouter()
+
+# Add routing rules
+router.add_route(
+    condition=lambda input_text: "github" in input_text.lower(),
+    agent_type="react",
+    config={"llm": your_llm}
+)
+
+router.add_route(
+    condition=lambda input_text: "reflect" in input_text.lower(),
+    agent_type="reflection",
+    config={"llm": your_llm}
 )
 ```
 
@@ -285,7 +295,7 @@ router = RouterAgent(
 Extend any preset with custom tools:
 
 ```python
-from mcp_arena.presets.github import GithubMCPServer
+from mcp_arena.presents.github import GithubMCPServer
 from mcp_arena.tools.base import tool
 
 @tool(description="Custom repository analyzer")
@@ -297,6 +307,59 @@ server = GithubMCPServer(
     extra_tools=[analyze_repo]
 )
 ```
+
+## 🤖 LangChain Integration
+
+Integrate mcp_arena MCP servers with LangChain agents for powerful multi-service automation:
+
+```python
+from langchain_openai import ChatOpenAI
+from mcp_arena.wrapper.langchain_integration import AsyncMCPLangChainIntegration
+
+# Initialize LLM
+llm = ChatOpenAI(model="gpt-4")
+
+# Create integration with automatic setup
+async with AsyncMCPLangChainIntegration(llm) as integration:
+    # Add your MCP servers
+    integration.add_github_server(token="your_github_token")
+    integration.add_slack_server(bot_token="xoxb-your-slack-token")
+    integration.add_gmail_server(
+        credentials_path="path/to/credentials.json",
+        token_path="path/to/token.json"
+    )
+    
+    # Use the unified agent
+    response = await integration.invoke(
+        "Check my latest GitHub commits and summarize important emails"
+    )
+    print(response)
+```
+
+### Quick Setup Examples
+
+**GitHub Agent:**
+```python
+async with AsyncMCPLangChainIntegration(llm) as integration:
+    integration.add_github_server(token="your_token")
+    response = await integration.invoke("List my GitHub repositories")
+```
+
+**Multi-Service Agent:**
+```python
+async with AsyncMCPLangChainIntegration(llm) as integration:
+    integration.add_github_server(token="github_token")
+    integration.add_slack_server(bot_token="slack_token")
+    response = await integration.invoke("Deploy latest code and notify in Slack")
+```
+
+**Installation:**
+```bash
+pip install langchain-openai langchain-mcp-adapters
+pip install "mcp_arena[communication]"
+```
+
+📖 **[Full Documentation](docs/LANGCHAIN_INTEGRATION.md)**
 
 ## 🏗️ Custom MCP Server
 
@@ -322,6 +385,14 @@ server.run()
 ```
 
 ## 📖 Documentation
+
+- **[Installation Guide](docs/INSTALLATION.md)** - Detailed installation instructions for all presets and communication services
+- **[MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md)** - Comprehensive guide to all 17 available MCP servers
+- **[Agent Guide](docs/AGENT_GUIDE.md)** - Using and configuring intelligent agents
+- **[Tools Guide](docs/TOOLS_GUIDE.md)** - Tool development and integration
+- **[LangChain Integration](docs/LANGCHAIN_INTEGRATION.md)** - Integrate MCP servers with LangChain agents
+- **[Quick Start](docs/QUICKSTART.md)** - Get started in minutes
+- **[Tutorial](docs/tutorial.md)** - Step-by-step tutorial
 
 ### Architecture
 
@@ -367,7 +438,10 @@ pip install mcp-arena[github,gitlab,bitbucket]
 pip install mcp-arena[postgres,mongodb,redis,vectordb]
 
 # Communication
-pip install mcp-arena[slack]
+pip install mcp-arena[slack,whatsapp,gmail,outlook]
+
+# All communication services
+pip install mcp-arena[communication]
 
 # Productivity
 pip install mcp-arena[notion,confluence,jira]
@@ -429,21 +503,25 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🔗 Links
 
-- [Documentation](https://github.com/SatyamSingh8306/mcp_arena)
+- [Documentation](docs/) - Complete documentation library
+- [Installation Guide](docs/INSTALLATION.md) - Installation instructions
+- [MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md) - Server documentation
+- [LangChain Integration](docs/LANGCHAIN_INTEGRATION.md) - LangChain integration guide
 - [Repository](https://github.com/SatyamSingh8306/mcp_arena.git)
 - [Issues](https://github.com/SatyamSingh8306/mcp_arena/issues)
 - [PyPI](https://pypi.org/project/mcp-arena/)
 
 ## 🚧 Status
 
-**Version:** 0.1.0 (Early-stage)
+**Version:** 0.2.1 (Production-ready)
 
 ✅ **Stable Features:**
 - MCP server base classes
-- 10+ production-ready presets
+- 17 production-ready presets
 - 4 agent types
 - Tool registration system
 - SOLID architecture
+- Communication services (Gmail, Outlook, Slack, WhatsApp)
 
 🔄 **Evolving APIs:**
 - Agent interfaces may enhance based on feedback

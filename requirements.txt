@@ -33,3 +33,15 @@ atlassian-python-api
 html2text
 
 langchain-mcp-adapters
+
+# Google APIs for Gmail
+google-auth
+google-auth-oauthlib
+google-auth-httplib2
+google-api-python-client
+
+
+# Microsoft Graph API
+msal
+requests
+twilio

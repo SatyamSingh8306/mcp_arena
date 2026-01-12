@@ -42,11 +42,44 @@ pip install mcp_arena[vectordb]
 # Slack MCP Server
 pip install mcp_arena[slack]
 
+# WhatsApp MCP Server
+pip install mcp_arena[whatsapp]
+
 # Discord MCP Server
 pip install mcp_arena[discord]
 
 # Microsoft Teams MCP Server
 pip install mcp_arena[teams]
+```
+
+#### Email Services
+```bash
+# Gmail MCP Server
+pip install mcp_arena[gmail]
+
+# Outlook MCP Server
+pip install mcp_arena[outlook]
+
+# All Email Services
+pip install mcp_arena[email]
+```
+
+#### Messaging Services
+```bash
+# Slack MCP Server
+pip install mcp_arena[slack]
+
+# WhatsApp MCP Server
+pip install mcp_arena[whatsapp]
+
+# All Messaging Services
+pip install mcp_arena[messaging]
+```
+
+#### All Communication Services
+```bash
+# Install all communication services (Gmail, Outlook, Slack, WhatsApp)
+pip install mcp_arena[communication]
 ```
 
 #### Productivity Tools

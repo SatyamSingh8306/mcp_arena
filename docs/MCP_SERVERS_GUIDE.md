@@ -180,7 +180,7 @@ server.run()  # Listens on http://0.0.0.0:8000/mcp
 
 ## Available MCP Servers
 
-MCPForge provides 14 pre-built MCP servers for common services.
+MCPForge provides 17 pre-built MCP servers for common services.
 
 ### 1. **GithubMCPServer**
 
@@ -660,6 +660,77 @@ confluence_server = ConfluenceMCPServer(
 
 ---
 
+### 15. **GmailMCPServer**
+
+**Purpose**: Manage Gmail emails, send messages, handle attachments.
+
+**Location**: `mcp_arena/presents/mail.py`
+
+**Dependencies**: google-auth, google-api-python-client
+
+**Constructor**:
+```python
+from mcp_arena.presents.mail import GmailMCPServer
+
+gmail_server = GmailMCPServer(
+    credentials_path="path/to/credentials.json",
+    token_path="path/to/token.json",
+    host="127.0.0.1",
+    port=8015,
+    auto_register_tools=True
+)
+```
+
+---
+
+### 16. **OutlookMCPServer**
+
+**Purpose**: Manage Outlook emails, calendar events, and Microsoft 365 services.
+
+**Location**: `mcp_arena/presents/outlook.py`
+
+**Dependencies**: msal (Microsoft Authentication Library)
+
+**Constructor**:
+```python
+from mcp_arena.presents.outlook import OutlookMCPServer
+
+outlook_server = OutlookMCPServer(
+    client_id="your_client_id",
+    client_secret="your_client_secret",
+    tenant_id="your_tenant_id",
+    host="127.0.0.1",
+    port=8016,
+    auto_register_tools=True
+)
+```
+
+---
+
+### 17. **WhatsAppMCPServer**
+
+**Purpose**: Send WhatsApp messages, manage conversations via Twilio API.
+
+**Location**: `mcp_arena/presents/whatsapp.py`
+
+**Dependencies**: twilio
+
+**Constructor**:
+```python
+from mcp_arena.presents.whatsapp import WhatsAppMCPServer
+
+whatsapp_server = WhatsAppMCPServer(
+    account_sid="your_account_sid",
+    auth_token="your_auth_token",
+    from_number="whatsapp:+1234567890",
+    host="127.0.0.1",
+    port=8017,
+    auto_register_tools=True
+)
+```
+
+---
+
 ## Creating Custom MCP Servers
 
 ### Step 1: Extend BaseMCPServer
@@ -862,7 +933,7 @@ registry.list_avail_mcp()
 ### Using MCP Server with Agents
 
 ```python
-from mcp_arena.agent import create_react_agent
+from mcp_arena.agent.react_agent import ReactAgent
 from mcp_arena.presents.github import GithubMCPServer
 from mcp_arena.tools.github import GithubMCPTools
 
@@ -873,7 +944,7 @@ github_server = GithubMCPServer(token="your_token")
 github_tools = GithubMCPTools(github_server)
 
 # Step 3: Create agent
-agent = create_react_agent(memory_type="conversation")
+agent = ReactAgent(llm=None, memory_type="conversation")
 
 # Step 4: Get tools from MCP server
 available_tools = github_tools.get_list_of_tools()
@@ -890,7 +961,7 @@ response = agent.process("List all my GitHub repositories and their stars")
 ### Multi-Server Integration
 
 ```python
-from mcp_arena.agent import create_react_agent
+from mcp_arena.agent.react_agent import ReactAgent
 from mcp_arena.presents.github import GithubMCPServer
 from mcp_arena.presents.docker import DockerMCPServer
 from mcp_arena.presents.postgres import PostgresMCPServer
@@ -901,7 +972,7 @@ docker = DockerMCPServer()
 postgres = PostgresMCPServer(host="...", user="...", password="...")
 
 # Create agent with multi-service capability
-agent = create_react_agent(memory_type="episodic")
+agent = ReactAgent(llm=None, memory_type="episodic")
 
 # Add capabilities from multiple services
 github_tools = GithubMCPTools(github)
@@ -1126,7 +1197,7 @@ print(f"Server health: {health['status']}")
 
 MCPForge MCP Servers provide:
 
-- **14 Pre-built Servers**: GitHub, Docker, PostgreSQL, MongoDB, Redis, S3, Slack, Jira, Notion, GitLab, Bitbucket, Confluence, LocalOperations, VectorDB
+- **17 Pre-built Servers**: GitHub, Docker, PostgreSQL, MongoDB, Redis, S3, Slack, Jira, Notion, GitLab, Bitbucket, Confluence, LocalOperations, VectorDB, Gmail, Outlook, WhatsApp
 - **Flexible Configuration**: Multiple transports, customizable host/port, debug modes
 - **Easy Integration**: Simple tool registration and agent integration
 - **Extensibility**: Simple base class for creating custom servers
