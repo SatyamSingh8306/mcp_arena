@@ -4,7 +4,7 @@ mcp_arena - An opinionated Python library for building MCP servers
 from dotenv import load_dotenv
 load_dotenv()
 
-__version__ = "0.2.2"
+__version__ = "0.2.3"
 __author__ = "Satyam Singh"
 __license__ = "MIT"
 

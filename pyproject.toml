@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp_arena"
-version = "0.2.2"
+version = "0.2.3"
 description = "An opinionated Python library for building MCP (Model Context Protocol) servers with presets, agents, and tools."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -154,6 +154,7 @@ complete = [
 # CLI Entry Point
 # ------------------------
 [project.scripts]
+mcp_arena = "mcp_arena.cli:app"
 mcp-arena = "mcp_arena.cli:app"
 
 # ------------------------
