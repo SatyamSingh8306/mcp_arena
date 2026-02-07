@@ -41,6 +41,20 @@ class AgentRouter:
         """Process input using the routed agent"""
         agent = self.route(input_text)
         return agent.process(input_text)
+    
+    def run(self, input_text: str) -> Any:
+        """Run the router with given input and return response.
+        
+        This is the primary method for executing the router. It routes
+        the input to the appropriate agent and returns the response.
+        
+        Args:
+            input_text: The input text to process
+            
+        Returns:
+            The response from the routed agent
+        """
+        return self.process(input_text)
 
 
 class SmartRouter(AgentRouter):
@@ -89,6 +103,20 @@ Respond with just the agent type name (reflection, react, or planning):"""
         # Use intelligent routing
         agent_type = self.intelligent_route(input_text)
         return self.factory.create_agent(agent_type)
+    
+    def run(self, input_text: str) -> Any:
+        """Run the smart router with given input and return response.
+        
+        This method uses LLM-based intelligent routing to select the
+        best agent for the given input.
+        
+        Args:
+            input_text: The input text to process
+            
+        Returns:
+            The response from the intelligently routed agent
+        """
+        return self.process(input_text)
 
 
 class MultiAgentOrchestrator:
@@ -162,6 +190,21 @@ class MultiAgentOrchestrator:
             results = [future.result() for future in concurrent.futures.as_completed(futures)]
         
         return results
+    
+    def run(self, workflow_name: str, initial_input: Any) -> Dict[str, Any]:
+        """Run a workflow with given input and return results.
+        
+        This is the primary method for executing the orchestrator.
+        It delegates to execute_workflow for the actual execution.
+        
+        Args:
+            workflow_name: The name of the workflow to execute
+            initial_input: The initial input for the workflow
+            
+        Returns:
+            Dictionary containing outputs from all agents in the workflow
+        """
+        return self.execute_workflow(workflow_name, initial_input)
 
 
 class ConditionalRouter:
@@ -212,6 +255,25 @@ class ConditionalRouter:
         
         # Fallback to reflection agent
         return self.factory.create_agent("reflection")
+    
+    def process(self, input_text: str) -> Any:
+        """Process input using the routed agent"""
+        agent = self.route(input_text)
+        return agent.process(input_text)
+    
+    def run(self, input_text: str) -> Any:
+        """Run the conditional router with given input and return response.
+        
+        This method uses priority-based conditional routing to select
+        the best agent for the given input.
+        
+        Args:
+            input_text: The input text to process
+            
+        Returns:
+            The response from the conditionally routed agent
+        """
+        return self.process(input_text)
 
 
 # Pre-built routing configurations
