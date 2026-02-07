@@ -35,6 +35,20 @@ class PlanningAgent(BaseAgent, IAgent):
         if "llm" in config:
             self.llm = config["llm"]
     
+    def run(self, input_data: Any) -> Any:
+        """Run the agent with given input and return response.
+        
+        This is the primary method for executing the Planning agent.
+        It delegates to process() for the actual execution.
+        
+        Args:
+            input_data: The input to process (typically a string query)
+            
+        Returns:
+            The agent's response after planning and execution
+        """
+        return self.process(input_data)
+    
     def process(self, input_data: Any) -> Any:
         """Process input and return response"""
         if isinstance(input_data, str):

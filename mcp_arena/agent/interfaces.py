@@ -98,6 +98,22 @@ class IAgent(ABC):
         pass
     
     @abstractmethod
+    def run(self, input_data: Any) -> Any:
+        """Run the agent with given input and return response.
+        
+        This is the primary method for executing an agent. It serves as
+        a convenience wrapper that provides a consistent interface across
+        all agent implementations.
+        
+        Args:
+            input_data: The input to process (typically a string query)
+            
+        Returns:
+            The agent's response after processing the input
+        """
+        pass
+    
+    @abstractmethod
     def process(self, input_data: Any) -> Any:
         """Process input and return response"""
         pass
