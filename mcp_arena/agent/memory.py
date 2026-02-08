@@ -1,5 +1,6 @@
 from typing import Any, Dict, Optional, List
 from collections import defaultdict
+from datetime import datetime
 import json
 from .interfaces import IAgentMemory
 
@@ -35,11 +36,18 @@ class ConversationMemory(IAgentMemory):
         return self._storage.get(key)
     
     def add_conversation_turn(self, user_input: str, agent_response: str, metadata: Optional[Dict] = None) -> None:
+        """Add a conversation turn with timestamp.
+        
+        Args:
+            user_input: The user's input message
+            agent_response: The agent's response
+            metadata: Optional metadata for this turn
+        """
         turn = {
             "user": user_input,
             "agent": agent_response,
             "metadata": metadata or {},
-            "timestamp": None  # Could add actual timestamp
+            "timestamp": datetime.now().isoformat()
         }
         self._conversation_history.append(turn)
         
