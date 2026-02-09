@@ -39,9 +39,23 @@ class ReflectionAgent(BaseAgent, IAgent):
         if "max_reflections" in config:
             self.add_node("configure_max_reflections", 
                          lambda state: self._configure_max_reflections(state, config["max_reflections"]))
-    
+
+    def run(self, input_data: Any) -> Any:
+        """Run the agent with input data.
+
+        This is the primary execution method that provides a consistent API.
+        It delegates to process() for the actual execution logic.
+
+        Args:
+            input_data: The input to process (typically a string).
+
+        Returns:
+            The agent's response (refined or initial response).
+        """
+        return self.process(input_data)
+
     def process(self, input_data: Any) -> Any:
-        """Process input and return response"""
+        """Process input and return response."""
         if isinstance(input_data, str):
             # Create initial state
             initial_state = ReflectionAgentState()
@@ -54,13 +68,13 @@ class ReflectionAgent(BaseAgent, IAgent):
             return result.refined_response or result.initial_response
         
         return None
-    
+
     def get_compiled_graph(self) -> CompiledStateGraph:
-        """Get the compiled LangGraph"""
+        """Get the compiled LangGraph."""
         return self.compile()
-    
+
     def add_tool(self, tool: IAgentTool) -> None:
-        """Add a tool to the agent"""
+        """Add a tool to the agent."""
         self.tools.append(tool)
     
     def set_memory(self, memory: IAgentMemory) -> None:

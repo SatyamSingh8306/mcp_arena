@@ -41,9 +41,23 @@ class ReactAgent(BaseAgent, IAgent):
         if "max_steps" in config:
             self.add_node("configure_max_steps", 
                          lambda state: self._configure_max_steps(state, config["max_steps"]))
-    
+
+    def run(self, input_data: Any) -> Any:
+        """Run the agent with input data.
+
+        This is the primary execution method that provides a consistent API.
+        It delegates to process() for the actual execution logic.
+
+        Args:
+            input_data: The input to process (typically a string).
+
+        Returns:
+            The agent's response (observation or thought).
+        """
+        return self.process(input_data)
+
     def process(self, input_data: Any) -> Any:
-        """Process input and return response"""
+        """Process input and return response."""
         if isinstance(input_data, str):
             # Create initial state
             initial_state = ReactAgentState()
@@ -56,13 +70,13 @@ class ReactAgent(BaseAgent, IAgent):
             return result.observation or result.thought
         
         return None
-    
+
     def get_compiled_graph(self) -> CompiledStateGraph:
-        """Get the compiled LangGraph"""
+        """Get the compiled LangGraph."""
         return self.compile()
-    
+
     def add_tool(self, tool: IAgentTool) -> None:
-        """Add a tool to the agent"""
+        """Add a tool to the agent."""
         self.tools.append(tool)
         self._update_tool_node()
     
