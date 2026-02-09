@@ -120,13 +120,63 @@ class IAgent(ABC):
 
 class IAgentPolicy(ABC):
     """Interface for agent policies"""
-    
+
     @abstractmethod
     def validate_action(self, action: Dict[str, Any]) -> bool:
         """Validate an action before execution"""
         pass
-    
+
     @abstractmethod
     def filter_response(self, response: Any) -> Any:
         """Filter/rate-limit responses"""
+        pass
+
+
+class IRouter(ABC):
+    """Base interface for all routers.
+
+    This provides a consistent API across all router types. The run() method
+    serves as the primary execution entry point, while route() determines
+    which agent handles the request.
+
+    All router implementations should inherit from this interface.
+    """
+
+    @abstractmethod
+    def route(self, input_text: str) -> 'IAgent':
+        """Route input to the appropriate agent.
+
+        Args:
+            input_text: The input text to route.
+
+        Returns:
+            The agent that should handle this input.
+        """
+        pass
+
+    @abstractmethod
+    def run(self, input_text: str) -> Any:
+        """Run the router with input text.
+
+        This is the primary execution method that provides a consistent API.
+        It routes the input and processes it through the selected agent.
+
+        Args:
+            input_text: The input text to process.
+
+        Returns:
+            The response from the routed agent.
+        """
+        pass
+
+    @abstractmethod
+    def process(self, input_text: str) -> Any:
+        """Process input using the routed agent.
+
+        Args:
+            input_text: The input text to process.
+
+        Returns:
+            The response from the agent.
+        """
         pass

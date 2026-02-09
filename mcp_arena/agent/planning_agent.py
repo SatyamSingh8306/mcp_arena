@@ -30,38 +30,52 @@ class PlanningAgent(BaseAgent, IAgent):
     def initialize(self, config: Dict[str, Any]) -> None:
         """Initialize the agent with configuration"""
         self.config = config
-        
+
         # Set up LLM if provided in config
         if "llm" in config:
             self.llm = config["llm"]
-    
+
+    def run(self, input_data: Any) -> Any:
+        """Run the agent with input data.
+
+        This is the primary execution method that provides a consistent API.
+        It delegates to process() for the actual execution logic.
+
+        Args:
+            input_data: The input to process (typically a string).
+
+        Returns:
+            The agent's formatted response with plan execution results.
+        """
+        return self.process(input_data)
+
     def process(self, input_data: Any) -> Any:
-        """Process input and return response"""
+        """Process input and return response."""
         if isinstance(input_data, str):
             # Create initial state
             initial_state = PlanningAgentState()
             initial_state.add_message({"type": "user", "content": input_data})
-            
+
             # Run the graph
             result = self.get_compiled_graph().invoke(initial_state)
-            
+
             # Return the final result
             return self._format_final_response(result)
-        
+
         return None
-    
+
     def get_compiled_graph(self) -> CompiledStateGraph:
-        """Get the compiled LangGraph"""
+        """Get the compiled LangGraph."""
         return self.compile()
-    
+
     def add_tool(self, tool: IAgentTool) -> None:
-        """Add a tool to the agent"""
+        """Add a tool to the agent."""
         self.tools.append(tool)
-    
+
     def set_memory(self, memory: IAgentMemory) -> None:
-        """Set the memory system"""
+        """Set the memory system."""
         self.memory = memory
-    
+
     def add_policy(self, policy: IAgentPolicy) -> None:
         """Add a policy to the agent"""
         self.policies.append(policy)

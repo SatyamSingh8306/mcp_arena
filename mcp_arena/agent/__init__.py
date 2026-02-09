@@ -30,8 +30,8 @@ Usage:
 """
 
 from .interfaces import (
-    IAgent, IAgentState, IAgentBehavior, IAgentMemory, 
-    IAgentTool, IAgentFactory, IAgentPolicy
+    IAgent, IAgentState, IAgentBehavior, IAgentMemory,
+    IAgentTool, IAgentFactory, IAgentPolicy, IRouter
 )
 
 from .base import BaseAgent
@@ -66,7 +66,7 @@ from .factory import (
 )
 
 from .router import (
-    AgentRouter, SmartRouter, MultiAgentOrchestrator,
+    BaseRouter, AgentRouter, SmartRouter, MultiAgentOrchestrator,
     ConditionalRouter, create_default_router, create_research_router
 )
 
@@ -77,7 +77,7 @@ __author__ = "MCP Arena Team"
 __all__ = [
     # Interfaces
     "IAgent", "IAgentState", "IAgentBehavior", "IAgentMemory",
-    "IAgentTool", "IAgentFactory", "IAgentPolicy",
+    "IAgentTool", "IAgentFactory", "IAgentPolicy", "IRouter",
     
     # Core Agents
     "BaseAgent", "ReflectionAgent", "ReactAgent", "PlanningAgent",
@@ -102,7 +102,7 @@ __all__ = [
     "create_agent", "create_reflection_agent", "create_react_agent", "create_planning_agent",
     
     # Routing
-    "AgentRouter", "SmartRouter", "MultiAgentOrchestrator",
+    "BaseRouter", "AgentRouter", "SmartRouter", "MultiAgentOrchestrator",
     "ConditionalRouter", "create_default_router", "create_research_router",
 ]
 
