@@ -1,11 +1,57 @@
-# mcp_arena
+<div align="center">
+
+# 🎯 MCP_ARENA
+
+### _Build Intelligent AI Agents with Zero Configuration_ 🚀
 
 [![PyPI version](https://badge.fury.io/py/mcp-arena.svg)](https://badge.fury.io/py/mcp-arena)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-**mcp_arena** is a production-ready Python library for building **MCP (Model Context Protocol) servers** with intelligent agent orchestration and domain-specific presets.
+</div>
+
+---
+
+🎯 **mcp_arena** is a production-ready Python library for building **MCP (Model Context Protocol) servers** with intelligent agent orchestration and domain-specific presets.
+
+> 💡 **Why mcp_arena?** Build powerful AI agents with pre-configured MCP servers for popular platforms, intelligent agent patterns, and seamless LangChain integration - all with zero-configuration setup!
+
+---
+
+## 📚 Table of Contents
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Core Features
+- [✨ Features](#-features)
+- [🚀 Quick Start](#-quick-start)
+- [📚 Available Presets](#-available-presets)
+- [🤖 Agent Types](#-agent-types)
+- [🔧 Custom Tools](#-custom-tools)
+- [🤖 LangChain Integration](#-langchain-integration)
+- [🏗️ Custom MCP Server](#️-custom-mcp-server)
+
+</td>
+<td width="50%" valign="top">
+
+### Resources & Info
+- [📖 Documentation](#-documentation)
+- [🏛️ Architecture](#️-architecture)
+- [📦 Installation Options](#-installation-options)
+- [🤝 Contributing](#-contributing)
+- [📋 Requirements](#-requirements)
+- [📄 License](#-license)
+- [🔗 Links](#-links)
+- [🚧 Status](#-status)
+
+</td>
+</tr>
+</table>
+
+---
 
 ## ✨ Features
 
@@ -14,10 +60,14 @@
 - 🔧 **Zero-configuration setup** for common use cases
 - 🏗️ **Extensible architecture** built on SOLID principles
 - 📦 **Modular design** - use only what you need
+- ⚡ **High performance** with async/await support
+- 🔒 **Secure** with built-in authentication and authorization
+- 🌐 **Multi-transport** support (stdio, HTTP, SSE)
+- 🎨 **Rich customization** with icons, metadata, and branding
 
 ## 🚀 Quick Start
 
-### Installation
+### 📦 Installation
 
 ```bash
 # Core library
@@ -30,17 +80,17 @@ pip install mcp-arena[github,slack,notion]
 pip install mcp-arena[all]
 ```
 
-### Basic Usage
+### 💻 Basic Usage
 
 ```python
 from mcp_arena.presents.github import GithubMCPServer
 
-# Zero-config GitHub MCP server
+# ✨ Zero-config GitHub MCP server
 mcp_server = GithubMCPServer(token="your_github_token")
 mcp_server.run()
 ```
 
-### Using Tools Directly
+### 🛠️ Using Tools Directly
 
 ```python
 from mcp_arena.tools.github import GithubTools
@@ -60,7 +110,7 @@ def add(a: int, b: int) -> int:
 
 
 # Add a dynamic greeting resource
-@mcp_servevr.resource("greeting://{name}")
+@mcp_server.resource("greeting://{name}")
 def get_greeting(name: str) -> str:
     """Get a personalized greeting"""
     return f"Hello, {name}!"
@@ -78,8 +128,9 @@ def greet_user(name: str, style: str = "friendly") -> str:
 
 ```
 
-## Advance Documentation
-```
+## 🎨 Advanced Documentation - Icons & Branding
+
+```python
 from mcp.server.fastmcp import Icon
 from mcp_arena.presents.github import GithubMCPServer
 
@@ -112,7 +163,7 @@ def my_resource():
 
 ```
 
-### With Agent Orchestration
+### 🤖 With Agent Orchestration
 
 ```python
 from mcp_arena.presents.github import GithubMCPServer
@@ -128,9 +179,9 @@ agent = ReactAgent(llm=None, memory_type="conversation")
 mcp_server.run()
 ```
 
-### LangChain Integration
+### 🔗 LangChain Integration
 
-#### Using MCP Arena Wrapper
+#### 🎁 Using MCP Arena Wrapper
 
 ```python
 from mcp_arena.wrapper.langchain_wrapper import MCPLangChainWrapper
@@ -153,7 +204,7 @@ agent = wrapper.create_agent(
 )
 ```
 
-#### Direct langchain_mcp_adapters Usage
+#### ⚙️ Direct langchain_mcp_adapters Usage
 
 ```python
 from langchain_mcp_adapters.client import MultiServerMCPClient  
@@ -194,20 +245,22 @@ math_response = await agent.ainvoke(
 )
 ```
 
+---
+
 ## 📚 Available Presets
 
-### Development Platforms
+### 💻 Development Platforms
 - **GitHub** - Repositories, issues, PRs, workflows
 - **GitLab** - Projects, CI/CD, issues  
 - **Bitbucket** - Repositories and pipelines
 
-### Data & Storage
+### 🗄️ Data & Storage
 - **PostgreSQL** - Database operations
 - **MongoDB** - Document operations
 - **Redis** - Cache and data structures
 - **VectorDB** - Vector database operations
 
-### Communication
+### 💬 Communication
 - **Slack** - Channels, messages, workflows
 - **WhatsApp** - Messaging via Twilio API
 - **Gmail** - Email management and sending
@@ -215,24 +268,26 @@ math_response = await agent.ainvoke(
 - **Discord** - Servers and channels
 - **Teams** - Microsoft Teams integration
 
-### Productivity
+### 📝 Productivity
 - **Notion** - Databases, pages, blocks
 - **Confluence** - Spaces and pages
 - **Jira** - Projects, issues, workflows
 
-### Cloud Services
+### ☁️ Cloud Services
 - **AWS S3** - Storage operations
 - **Azure Blob** - Azure storage
 - **Google Cloud Storage** - GCP storage
 
-### System Operations
+### ⚙️ System Operations
 - **Local Operations** - File system and system ops
 - **Docker** - Container management
 - **Kubernetes** - Cluster operations
 
+---
+
 ## 🤖 Agent Types
 
-### Reflection Agent
+### 🪞 Reflection Agent
 Self-improving agent that refines responses through iterative refinement.
 
 ```python
@@ -244,7 +299,7 @@ agent = ReflectionAgent(
 )
 ```
 
-### ReAct Agent
+### ⚡ ReAct Agent
 Systematic reasoning and acting cycle for complex problem-solving.
 
 ```python
@@ -256,7 +311,7 @@ agent = ReactAgent(
 )
 ```
 
-### Planning Agent
+### 📋 Planning Agent
 Goal decomposition and step-by-step execution for complex tasks.
 
 ```python
@@ -268,7 +323,7 @@ agent = PlanningAgent(
 )
 ```
 
-### Router Agent
+### 🔀 Router Agent
 Dynamic agent selection based on task requirements.
 
 ```python
@@ -290,6 +345,8 @@ router.add_route(
 )
 ```
 
+---
+
 ## 🔧 Custom Tools
 
 Extend any preset with custom tools:
@@ -307,6 +364,8 @@ server = GithubMCPServer(
     extra_tools=[analyze_repo]
 )
 ```
+
+---
 
 ## 🤖 LangChain Integration
 
@@ -338,14 +397,14 @@ async with AsyncMCPLangChainIntegration(llm) as integration:
 
 ### Quick Setup Examples
 
-**GitHub Agent:**
+**🐙 GitHub Agent:**
 ```python
 async with AsyncMCPLangChainIntegration(llm) as integration:
     integration.add_github_server(token="your_token")
     response = await integration.invoke("List my GitHub repositories")
 ```
 
-**Multi-Service Agent:**
+**🔄 Multi-Service Agent:**
 ```python
 async with AsyncMCPLangChainIntegration(llm) as integration:
     integration.add_github_server(token="github_token")
@@ -353,14 +412,14 @@ async with AsyncMCPLangChainIntegration(llm) as integration:
     response = await integration.invoke("Deploy latest code and notify in Slack")
 ```
 
-**Installation:**
+**📦 Installation:**
 ```bash
 pip install langchain-openai langchain-mcp-adapters
 pip install "mcp_arena[communication]"
 ```
 
 📖 **[Full Documentation](docs/LANGCHAIN_INTEGRATION.md)**
-
+---
 ## 🏗️ Custom MCP Server
 
 Build from scratch for full control:
@@ -383,7 +442,7 @@ server = CustomMCPServer(
 )
 server.run()
 ```
-
+---
 ## 📖 Documentation
 
 - **[Installation Guide](docs/INSTALLATION.md)** - Detailed installation instructions for all presets and communication services
@@ -394,7 +453,7 @@ server.run()
 - **[Quick Start](docs/QUICKSTART.md)** - Get started in minutes
 - **[Tutorial](docs/tutorial.md)** - Step-by-step tutorial
 
-### Architecture
+### 🏛️ Architecture
 
 ```
 MCP Client
@@ -424,49 +483,57 @@ MCP Client
 │ - Orchestration │
 └─────────────────┘
 ```
-
-### Installation Options
+---
+### 📦 Installation Options
 
 ```bash
-# Core only
+# 🎯 Core only
 pip install mcp-arena[core]
 
-# Development platforms
+# 💻 Development platforms
 pip install mcp-arena[github,gitlab,bitbucket]
 
-# Data & storage
+# 🗄️ Data & storage
 pip install mcp-arena[postgres,mongodb,redis,vectordb]
 
-# Communication
+# 💬 Communication
 pip install mcp-arena[slack,whatsapp,gmail,outlook]
 
-# All communication services
+# 📧 All communication services
 pip install mcp-arena[communication]
 
-# Productivity
+# 📝 Productivity
 pip install mcp-arena[notion,confluence,jira]
 
-# Cloud services
+# ☁️ Cloud services
 pip install mcp-arena[aws,docker,kubernetes]
 
-# System operations
+# ⚙️ System operations
 pip install mcp-arena[local_operation]
 
-# Agent framework
+# 🤖 Agent framework
 pip install mcp-arena[agents]
 
-# All presets
+# 🌟 All presets
 pip install mcp-arena[all]
 
-# Complete with dev tools
+# 🚀 Complete with dev tools
 pip install mcp-arena[complete]
 ```
 
+---
+
 ## 🤝 Contributing
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+❤️ We welcome contributions! Please see our documentation for details:
 
-### Development Setup
+- 📖 **[Contributing Guide](CONTRIBUTING.md)** - How to contribute to the project
+- ⚖️ **[Code of Conduct](CODE_OF_CONDUCT.md)** - Our community guidelines and standards
+- 🔒 **[Security Policy](SECURITY.md)** - How to report security vulnerabilities
+
+Before contributing, please read these documents to understand our development process and community expectations.
+
+### 🛠️ Development Setup
 
 ```bash
 # Clone the repository
@@ -485,52 +552,72 @@ isort .
 mypy .
 ```
 
-### Priority Areas
+### 🎯 Priority Areas
 
 - New preset implementations
 - Agent pattern improvements  
 - Documentation and examples
 - Bug fixes and performance
 
+---
+
 ## 📋 Requirements
 
 - Python 3.12+
 - MCP client compatible with Model Context Protocol v1.0+
-
+---
 ## 📄 License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
+---
+
 ## 🔗 Links
 
-- [Documentation](docs/) - Complete documentation library
-- [Installation Guide](docs/INSTALLATION.md) - Installation instructions
-- [MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md) - Server documentation
-- [LangChain Integration](docs/LANGCHAIN_INTEGRATION.md) - LangChain integration guide
-- [Repository](https://github.com/SatyamSingh8306/mcp_arena.git)
-- [Issues](https://github.com/SatyamSingh8306/mcp_arena/issues)
-- [PyPI](https://pypi.org/project/mcp-arena/)
+### 📚 Documentation
+- 📖 [Complete Documentation Library](docs/) - All documentation files
+- 💿 [Installation Guide](docs/INSTALLATION.md) - Installation instructions
+- 🚀 [Quick Start Guide](docs/QUICKSTART.md) - Get started in minutes
+- 🖥️ [MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md) - Server documentation
+- 🤖 [Agent Guide](docs/AGENT_GUIDE.md) - Using and configuring agents
+- 🔧 [Tools Guide](docs/TOOLS_GUIDE.md) - Tool development and integration
+- 🔗 [LangChain Integration](docs/LANGCHAIN_INTEGRATION.md) - LangChain integration guide
+- 📝 [Tutorial](docs/tutorial.md) - Step-by-step tutorial
+
+### 👥 Community & Contributing
+- 🤝 [Contributing Guide](CONTRIBUTING.md) - How to contribute
+- ⚖️ [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
+- 🔒 [Security Policy](SECURITY.md) - Report security vulnerabilities
+- 💻 [Repository](https://github.com/SatyamSingh8306/mcp_arena.git) - GitHub repository
+- 🐛 [Issues](https://github.com/SatyamSingh8306/mcp_arena/issues) - Report bugs or request features
+- 💬 [Discussions](https://github.com/SatyamSingh8306/mcp_arena/discussions) - Ask questions and share ideas
+
+### 📦 Package
+- 🐍 [PyPI](https://pypi.org/project/mcp-arena/) - Python Package Index
+- 📋 [Changelog](https://github.com/SatyamSingh8306/mcp_arena/releases) - Release notes
+
+---
 
 ## 🚧 Status
 
-**Version:** 0.2.1 (Production-ready)
+**Version:** 0.2.1 ✨ (Production-ready)
 
 ✅ **Stable Features:**
-- MCP server base classes
-- 17 production-ready presets
-- 4 agent types
-- Tool registration system
-- SOLID architecture
-- Communication services (Gmail, Outlook, Slack, WhatsApp)
+- 🏗️ MCP server base classes
+- 🎁 17 production-ready presets
+- 🧠 4 agent types
+- 🔧 Tool registration system
+- 🏛️ SOLID architecture
+- 📞 Communication services (Gmail, Outlook, Slack, WhatsApp)
 
 🔄 **Evolving APIs:**
-- Agent interfaces may enhance based on feedback
-- New preset additions
-- Performance optimizations
+- 🔮 Agent interfaces may enhance based on feedback
+- ➕ New preset additions
+- ⚡ Performance optimizations
 
 📈 **Production Ready:**
-- Comprehensive documentation
-- Active development
-- Community support
+- 📚 Comprehensive documentation
+- 🚀 Active development
+- 👥 Community support
 
 
