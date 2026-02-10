@@ -1,4 +1,6 @@
 from typing import Any, Dict, List, Type, Optional
+
+from cv2 import sort
 from .interfaces import IAgent, IAgentFactory, IAgentTool, IAgentMemory, IAgentPolicy
 from .reflection_agent import ReflectionAgent
 from .react_agent import ReactAgent
@@ -45,9 +47,32 @@ class AgentFactory(IAgentFactory):
         """Set default configuration for an agent type"""
         self._default_config[agent_type] = config
     
-    def list_agent_types(self) -> List[str]:
-        """List all registered agent types"""
-        return list(self._agent_types.keys())
+
+        def list_agent_types(
+        self,
+        filter_prefix: Optional[str] = None,
+        sort: bool = False
+    ) -> List[str]:
+         """
+        List all registered agent types with optional filtering and sorting.
+
+        :param filter_prefix: Only include agent types starting with this prefix
+        :param sort: Whether to sort agent types alphabetically
+        """
+        agent_types = list(self._agent_types.keys())
+
+        if filter_prefix:
+            agent_types = [
+                a for a in agent_types
+                if a.startswith(filter_prefix)
+            ]
+
+        if sort:
+            agent_types.sort()
+
+        return agent_types
+
+
     
     def _register_builtin_agents(self) -> None:
         """Register built-in agent types"""
