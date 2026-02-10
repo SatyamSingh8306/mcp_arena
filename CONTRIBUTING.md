@@ -2,37 +2,43 @@
 
 Thank you for your interest in contributing to mcp_arena! This document provides guidelines and instructions for contributing to this project.
 
-## 📋 Table of Contents
+> 👉 **Before you begin:** Please read our [⚖️ Code of Conduct](CODE_OF_CONDUCT.md) to understand our community standards and expectations.
 
-- [Code of Conduct](#code-of-conduct)
-- [Getting Started](#getting-started)
-- [Development Setup](#development-setup)
-- [Making Contributions](#making-contributions)
-- [Pull Request Process](#pull-request-process)
-- [Coding Standards](#coding-standards)
-- [Testing Guidelines](#testing-guidelines)
-- [Documentation](#documentation)
-- [Priority Areas](#priority-areas)
-- [Community](#community)
+## 📚 Table of Contents
 
-## Code of Conduct
+- [⚖️ Code of Conduct](#️-code-of-conduct)
+- [🚀 Getting Started](#-getting-started)
+- [🛠️ Development Setup](#️-development-setup)
+- [✨ Making Contributions](#-making-contributions)
+- [📤 Pull Request Process](#-pull-request-process)
+- [📐 Coding Standards](#-coding-standards)
+- [✅ Testing Guidelines](#-testing-guidelines)
+- [📚 Documentation](#-documentation)
+- [🎯 Priority Areas](#-priority-areas)
+- [👥 Community](#-community)
 
-By participating in this project, you agree to maintain a respectful and inclusive environment. Please:
+## ⚖️ Code of Conduct
 
-- Be respectful and considerate in all interactions
-- Welcome newcomers and help them get started
-- Focus on constructive feedback
-- Accept responsibility for your mistakes and learn from them
+This project and everyone participating in it is governed by our [⚖️ Code of Conduct](CODE_OF_CONDUCT.md). By participating, you are expected to uphold this code. Please report unacceptable behavior to [satyamsingh8306@gmail.com](mailto:satyamsingh8306@gmail.com).
 
-## Getting Started
+Key principles:
+- 🤝 Be respectful and considerate in all interactions
+- 👋 Welcome newcomers and help them get started
+- 💬 Focus on constructive feedback
+- 🎯 Accept responsibility for your mistakes and learn from them
+- 🌈 Foster an inclusive and harassment-free environment
 
-### Prerequisites
+For full details, please read the [⚖️ complete Code of Conduct](CODE_OF_CONDUCT.md).
+
+## 🚀 Getting Started
+
+### 📦 Prerequisites
 
 - Python 3.12 or higher
 - Git
 - A GitHub account
 
-### Fork and Clone
+### 🍴 Fork and Clone
 
 1. **Fork the repository** on GitHub by clicking the "Fork" button
 2. **Clone your fork** locally:
@@ -45,9 +51,9 @@ By participating in this project, you agree to maintain a respectful and inclusi
    git remote add upstream https://github.com/SatyamSingh8306/mcp_arena.git
    ```
 
-## Development Setup
+## 🛠️ Development Setup
 
-### Create Virtual Environment
+### 📦 Create Virtual Environment
 
 ```bash
 # Create virtual environment
@@ -60,7 +66,7 @@ source venv/bin/activate
 .\venv\Scripts\activate
 ```
 
-### Install Dependencies
+### 💿 Install Dependencies
 
 ```bash
 # Install in development mode with dev dependencies
@@ -70,7 +76,7 @@ pip install -e ".[dev]"
 pip install -e ".[complete]"
 ```
 
-### Verify Installation
+### ✅ Verify Installation
 
 ```bash
 # Run tests to verify setup
@@ -80,9 +86,9 @@ pytest
 python -c "import mcp_arena; print(f'Version: {mcp_arena.__version__}')"
 ```
 
-## Making Contributions
+## ✨ Making Contributions
 
-### Branch Naming Convention
+### 🌳 Branch Naming Convention
 
 Create a new branch for each contribution:
 
@@ -108,7 +114,7 @@ Examples:
 - `fix/memory-leak-in-agent`
 - `docs/update-installation-guide`
 
-### Commit Message Format
+### 📝 Commit Message Format
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/):
 
@@ -136,9 +142,9 @@ git commit -m "fix(memory): add timestamps to conversation turns"
 git commit -m "docs: add API documentation for presets"
 ```
 
-## Pull Request Process
+## 📤 Pull Request Process
 
-### Before Submitting
+### 🔍 Before Submitting
 
 1. **Sync with upstream**:
    ```bash
@@ -162,7 +168,7 @@ git commit -m "docs: add API documentation for presets"
    isort .
    ```
 
-### Submitting Your PR
+### 📨 Submitting Your PR
 
 1. Push your branch to your fork:
    ```bash
@@ -177,22 +183,22 @@ git commit -m "docs: add API documentation for presets"
    - Testing performed
    - Screenshots (for UI changes)
 
-### PR Review Process
+### 👀 PR Review Process
 
 - Maintainers will review your PR
 - Address any requested changes
 - Once approved, your PR will be merged
 
-## Coding Standards
+## 📐 Coding Standards
 
-### Python Style
+### 🐍 Python Style
 
 - Follow [PEP 8](https://peps.python.org/pep-0008/) style guide
 - Use [Black](https://github.com/psf/black) for formatting
 - Use [isort](https://pycqa.github.io/isort/) for import sorting
 - Maximum line length: 127 characters
 
-### Type Hints
+### 🏷️ Type Hints
 
 Use type hints for function signatures:
 
@@ -202,7 +208,7 @@ def process(self, input_data: Any) -> Any:
     pass
 ```
 
-### Docstrings
+### 📝 Docstrings
 
 Use docstrings for all public classes and methods:
 
@@ -219,7 +225,7 @@ def add_tool(self, tool: IAgentTool) -> None:
     self.tools.append(tool)
 ```
 
-### SOLID Principles
+### 🏛️ SOLID Principles
 
 This project follows SOLID principles:
 
@@ -229,9 +235,9 @@ This project follows SOLID principles:
 - **Interface Segregation**: Focused, cohesive interfaces
 - **Dependency Inversion**: Depend on abstractions, not concretions
 
-## Testing Guidelines
+## ✅ Testing Guidelines
 
-### Running Tests
+### 🏃 Running Tests
 
 ```bash
 # Run all tests
@@ -250,7 +256,7 @@ pytest tests/test_agents.py::TestAgentInitialization::test_react_agent_init
 pytest --cov=mcp_arena
 ```
 
-### Writing Tests
+### ✍️ Writing Tests
 
 - Place tests in the `tests/` directory
 - Name test files with `test_` prefix
@@ -269,9 +275,9 @@ class TestAgentInitialization:
         assert hasattr(agent, 'process')
 ```
 
-## Documentation
+## 📚 Documentation
 
-### Where to Add Documentation
+### 📍 Where to Add Documentation
 
 - **README.md** - Project overview and quick start
 - **docs/** - Detailed documentation
@@ -281,13 +287,13 @@ class TestAgentInitialization:
   - `TOOLS_GUIDE.md` - Tools documentation
   - `MCP_SERVERS_GUIDE.md` - MCP servers documentation
 
-### Documentation Style
+### ✍️ Documentation Style
 
 - Use clear, concise language
 - Include code examples
 - Keep documentation up to date with code changes
 
-## Priority Areas
+## 🎯 Priority Areas
 
 We especially welcome contributions in these areas:
 
@@ -300,15 +306,19 @@ We especially welcome contributions in these areas:
 | **Performance** | Optimize code performance |
 | **Tests** | Increase test coverage |
 
-## Community
+## 👥 Community
 
-### Getting Help
+### ⚖️ Code of Conduct
+
+All community interactions are governed by our [⚖️ Code of Conduct](CODE_OF_CONDUCT.md). Please read and follow it to help maintain a welcoming and inclusive environment.
+
+### 🎓 Getting Help
 
 - Open a [GitHub Issue](https://github.com/SatyamSingh8306/mcp_arena/issues) for bugs
 - Use [GitHub Discussions](https://github.com/SatyamSingh8306/mcp_arena/discussions) for questions
 - Check existing issues before creating new ones
 
-### Reporting Bugs
+### 🐛 Reporting Bugs
 
 When reporting bugs, include:
 
@@ -319,13 +329,24 @@ When reporting bugs, include:
 5. Expected vs actual behavior
 6. Error messages/stack traces
 
-### Feature Requests
+> ⚠️ **Security Issues:** If you discover a security vulnerability, please do NOT open a public issue. Instead, follow our [Security Policy](SECURITY.md) for responsible disclosure.
+
+### 💡 Feature Requests
 
 For feature requests:
 
 1. Check if it already exists in issues
 2. Describe the use case
 3. Explain why it would benefit the project
+
+---
+
+## 🔗 Related Documentation
+
+- 📖 **[README](README.md)** - Project overview and quick start
+- ⚖️ **[Code of Conduct](CODE_OF_CONDUCT.md)** - Community guidelines
+- 🔒 **[Security Policy](SECURITY.md)** - Security and vulnerability reporting
+- 📜 **[License](LICENSE)** - MIT License details
 
 ---
 
