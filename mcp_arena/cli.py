@@ -462,11 +462,14 @@ def _parse_cli_args(args: List[str]) -> Dict[str, Any]:
             key = arg.lstrip("-").replace("-", "_")
             if i + 1 < len(args) and not args[i + 1].startswith("--"):
                 value = args[i + 1]
-                # Try to convert to appropriate type
+
+                # Convert only boolean values
                 if value.lower() in ("true", "false"):
                     value = value.lower() == "true"
-                elif value.isdigit():
-                    value = int(value)
+
+                # IMPORTANT: Do NOT auto-convert digits to int
+                # Tokens, API keys, etc. must remain strings
+
                 kwargs[key] = value
                 i += 2
             else:
@@ -475,7 +478,6 @@ def _parse_cli_args(args: List[str]) -> Dict[str, Any]:
         else:
             i += 1
     return kwargs
-
 
 @app.command(
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True}
