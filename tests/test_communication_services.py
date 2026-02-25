@@ -1,5 +1,5 @@
 """Test communication services specifically."""
-
+import warnings
 import pytest
 from unittest.mock import Mock, patch, MagicMock
 
@@ -52,7 +52,7 @@ class TestGmailService:
             from googleapiclient.discovery import build
             assert google.auth is not None
         except ImportError as e:
-            pytest.warn(f"Gmail dependencies not available: {e}")
+            warnings.warn(f"Gmail dependencies not available: {e}")
 
 
 class TestOutlookService:
@@ -106,7 +106,7 @@ class TestOutlookService:
             import msal
             assert msal is not None
         except ImportError as e:
-            pytest.warn(f"Outlook dependencies not available: {e}")
+            warnings.warn(f"Outlook dependencies not available: {e}")
 
 
 class TestWhatsAppService:
@@ -160,7 +160,7 @@ class TestWhatsAppService:
             import twilio
             assert twilio is not None
         except ImportError as e:
-            pytest.warn(f"WhatsApp dependencies not available: {e}")
+            warnings.warn(f"WhatsApp dependencies not available: {e}")
 
 
 class TestSlackService:
@@ -205,7 +205,7 @@ class TestSlackService:
             import slack_sdk
             assert slack_sdk is not None
         except ImportError as e:
-            pytest.warn(f"Slack dependencies not available: {e}")
+            warnings.warn(f"Slack dependencies not available: {e}")
 
 
 class TestCommunicationServicesIntegration:
@@ -328,7 +328,7 @@ class TestCommunicationServicesDependencies:
             try:
                 __import__(module)
             except ImportError:
-                pytest.warn(f"Email dependency '{module}' for {service} not available")
+                warnings.warn(f"Email dependency '{module}' for {service} not available")
 
     def test_messaging_dependencies(self):
         """Test messaging service dependencies."""
@@ -341,7 +341,7 @@ class TestCommunicationServicesDependencies:
             try:
                 __import__(module)
             except ImportError:
-                pytest.warn(f"Messaging dependency '{module}' for {service} not available")
+                warnings.warn(f"Messaging dependency '{module}' for {service} not available")
 
     def test_communication_package_versions(self):
         """Test communication package versions are compatible."""
@@ -360,9 +360,9 @@ class TestCommunicationServicesDependencies:
                     # Basic version check - just ensure it exists
                     assert version is not None
                 else:
-                    pytest.warn(f"Could not determine version for {package}")
+                    warnings.warn(f"Could not determine version for {package}")
             except ImportError:
-                pytest.warn(f"Package {package} not available")
+                warnings.warn(f"Package {package} not available")
 
 
 class TestCommunicationServicesPerformance:
