@@ -70,6 +70,10 @@ from .router import (
     ConditionalRouter, create_default_router, create_research_router
 )
 
+from .profiler import (
+    AgentProfiler, ExecutionMetric, profile_agent
+)
+
 __version__ = "1.0.0"
 __author__ = "MCP Arena Team"
 
@@ -104,6 +108,9 @@ __all__ = [
     # Routing
     "AgentRouter", "SmartRouter", "MultiAgentOrchestrator",
     "ConditionalRouter", "create_default_router", "create_research_router",
+    
+    # Profiling
+    "AgentProfiler", "ExecutionMetric", "profile_agent",
 ]
 
 
