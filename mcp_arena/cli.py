@@ -760,5 +760,170 @@ def validate_preset(
         raise typer.Exit(code=1)
 
 
+@app.command("templates")
+def templates_command():
+    """
+    List all available agent templates.
+    """
+    from mcp_arena.templates import list_templates, get_template
+    
+    table = Table(
+        title="Available Agent Templates",
+        box=box.ROUNDED,
+        show_header=True,
+        header_style=f"bold {COLORS['primary']}"
+    )
+    table.add_column("Name", style=f"bold {COLORS['info']}", min_width=15)
+    table.add_column("Description", style=COLORS["muted"], min_width=40)
+    table.add_column("Parameters", style=COLORS["accent"])
+    
+    for name in list_templates():
+        tmpl = get_template(name)
+        info = tmpl.get_info()
+        params = ", ".join(info["parameters"]) if info["parameters"] else "-"
+        table.add_row(name, info["description"], params)
+    
+    console.print()
+    console.print(table)
+    console.print()
+    console.print(
+        f"[{COLORS['muted']}]Use [bold]mcp-arena create --template <name>[/bold] "
+        f"to scaffold a new agent from a template.[/{COLORS['muted']}]"
+    )
+    console.print()
+    console.print(create_company_footer())
+
+
+@app.command("create")
+def create_agent(
+    template: str = typer.Option(..., help="The template to use (e.g., support-bot, code-reviewer)"),
+    name: str = typer.Option("my_agent", help="Name of the agent file (without .py)"),
+    output_dir: str = typer.Option(".", help="Directory to create the agent in"),
+):
+    """
+    Create a new agent from a template.
+    """
+    from mcp_arena.templates import get_template, list_templates
+    
+    try:
+        # Check if template exists
+        try:
+            tmpl = get_template(template)
+        except ValueError:
+            console.print(f"[bold red]Error:[/bold red] Template '{template}' not found.")
+            console.print(f"Available templates: {', '.join(list_templates())}")
+            raise typer.Exit(code=1)
+            
+        # Ensure output directory exists
+        os.makedirs(output_dir, exist_ok=True)
+        
+        file_path = os.path.join(output_dir, f"{name}.py")
+        if os.path.exists(file_path):
+             confirm = typer.confirm(f"File {file_path} already exists. Overwrite?")
+             if not confirm:
+                 raise typer.Abort()
+        
+        # Simple boilerplate generation
+        content = f'''"""
+Agent created from template: {template}
+Description: {tmpl.description}
+"""
+import os
+import sys
+
+# Ensure mcp_arena is in path if running locally
+# sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_arena.templates import get_template
+
+def main():
+    # Load the template
+    print("Loading agent template: {template}...")
+    try:
+        template = get_template("{template}")
+        
+        # Configure and build the agent
+        # You can override parameters here. 
+        # Available parameters: {tmpl.parameters}
+        agent = template.build()
+        
+        print(f"Agent '{template.name}' is ready!")
+        print("Type 'quit' or 'exit' to stop.")
+        
+        # Interactive loop
+        while True:
+            try:
+                user_input = input("\\nYou: ")
+                if user_input.lower() in ["quit", "exit"]:
+                    break
+                    
+                if not user_input.strip():
+                    continue
+                    
+                # Process the input
+                response = agent.process(user_input)
+                print(f"Agent: {{response}}")
+                
+            except KeyboardInterrupt:
+                break
+            except Exception as e:
+                print(f"Error: {{e}}")
+                
+    except Exception as e:
+        print(f"Failed to initialize agent: {{e}}")
+
+if __name__ == "__main__":
+    main()
+'''
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(content)
+            
+        console.print(Panel(
+            f"[bold green]Successfully created agent at:[/bold green] {file_path}\n"
+            f"[dim]Run it with:[/dim] python {file_path}",
+            title="Agent Created",
+            border_style="green"
+        ))
+
+    except Exception as e:
+        console.print(f"[bold red]Error creating agent:[/bold red] {e}")
+        # raise typer.Exit(code=1)
+
+
+@app.command("deploy")
+def deploy_agent(
+    target: str = typer.Option("docker", help="Deployment target (currently only 'docker')"),
+    output_dir: str = typer.Option(".", help="Directory to generate deployment files"),
+):
+    """
+    Generate deployment files (e.g., Dockerfile) for your agent.
+    """
+    if target.lower() != "docker":
+        console.print(f"[bold red]Error:[/bold red] Unsupported target '{target}'. Use 'docker'.")
+        raise typer.Exit(code=1)
+        
+    from mcp_arena.deployment.docker import generate_dockerfile, generate_docker_compose
+    
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        
+        with console.status("Generating Docker files..."):
+            dockerfile = generate_dockerfile(output_dir)
+            compose = generate_docker_compose(output_dir)
+            
+        console.print(Panel(
+            f"[bold green]Deployment files generated:[/bold green]\n"
+            f"- {dockerfile}\n"
+            f"- {compose}\n\n"
+            f"[dim]To run:[/dim] docker-compose up --build",
+            title="Deployment Ready",
+            border_style="green"
+        ))
+        
+    except Exception as e:
+        console.print(f"[bold red]Error generating deployment files:[/bold red] {e}")
+        raise typer.Exit(code=1)
+
+
 if __name__ == "__main__":
     app()
