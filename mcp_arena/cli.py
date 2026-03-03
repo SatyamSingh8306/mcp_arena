@@ -494,6 +494,17 @@ def run(
         "-v", 
         help="Enable verbose output"
     ),
+    enable_dashboard: bool = typer.Option(
+        False,
+        "--dashboard",
+        "-d",
+        help="Launch a visual metrics dashboard alongside the server",
+    ),
+    dashboard_port: int = typer.Option(
+        9090,
+        "--dashboard-port",
+        help="Port for the metrics dashboard (default 9090)",
+    ),
 ):
     """
     Run an MCP server preset with enhanced UI and progress tracking.
@@ -563,6 +574,11 @@ def run(
         progress.update(task, description=f"[{COLORS['info']}]{stages[3][0]}...")
         
         try:
+            # Pass dashboard flags to the server
+            if enable_dashboard:
+                kwargs["enable_dashboard"] = True
+                kwargs["dashboard_port"] = dashboard_port
+
             server_instance = server_class(**kwargs)
             progress.advance(task, stages[3][1] * 100)
             time.sleep(0.3)
@@ -625,7 +641,14 @@ def run(
                 details["Endpoint"] = f"http://{server_instance.host}:{server_instance.port}/mcp"
     
     if kwargs:
-        details["Parameters"] = ", ".join(f"{k}={v}" for k, v in kwargs.items())
+        # Filter out internal dashboard flags from display
+        display_kwargs = {k: v for k, v in kwargs.items() if k not in ("enable_dashboard", "dashboard_port")}
+        if display_kwargs:
+            details["Parameters"] = ", ".join(f"{k}={v}" for k, v in display_kwargs.items())
+
+    if enable_dashboard:
+        details["Dashboard"] = f"http://127.0.0.1:{dashboard_port}/dashboard"
+        details["Metrics"] = f"http://127.0.0.1:{dashboard_port}/metrics"
     
     info_content = "\n".join([
         f"[{COLORS['primary']}]{k}:[/{COLORS['primary']}] [{COLORS['muted']}]{v}[/{COLORS['muted']}]"
@@ -684,6 +707,95 @@ def run(
             # Console might be closed, ignore
             pass
         raise typer.Exit(code=1)
+
+
+@app.command("dashboard")
+def dashboard(
+    mcp_server: str = typer.Option(
+        ...,
+        "--mcp-server",
+        "-s",
+        help="Name of the MCP server preset to monitor",
+    ),
+    port: int = typer.Option(
+        9090,
+        "--port",
+        "-p",
+        help="Port for the dashboard HTTP server",
+    ),
+):
+    """
+    Launch a visual metrics dashboard for an MCP server.
+
+    The dashboard serves a live web page at http://127.0.0.1:<port>/dashboard
+    and a JSON metrics endpoint at http://127.0.0.1:<port>/metrics.
+    """
+    from mcp_arena.mcp.metrics import MetricsCollector
+    from mcp_arena.mcp.dashboard import DashboardServer
+
+    console.print(create_header("MCP Arena Dashboard", "Real-time server metrics"))
+    console.print()
+
+    # Validate preset exists
+    presets = _get_available_presets()
+    if mcp_server not in presets:
+        console.print(create_status_panel(
+            "Error",
+            f"Server preset '{mcp_server}' not found.",
+            "error",
+            {"Suggestion": "Run 'mcp-arena list' to see available presets"},
+        ))
+        raise typer.Exit(code=1)
+
+    # Create a standalone metrics collector (no actual server needed)
+    metrics = MetricsCollector(server_name=f"{mcp_server.title()} MCP Server")
+    dash = DashboardServer(
+        metrics_collector=metrics,
+        host="127.0.0.1",
+        port=port,
+        server_name=f"{mcp_server.title()} MCP Server",
+    )
+
+    try:
+        dash.start()
+    except OSError as e:
+        console.print(create_status_panel(
+            "Error",
+            f"Could not start dashboard: {e}",
+            "error",
+            {"Suggestion": f"Port {port} may be in use. Try --port <other>"},
+        ))
+        raise typer.Exit(code=1)
+
+    console.print(create_status_panel(
+        "Dashboard Running",
+        f"Listening on http://127.0.0.1:{port}",
+        "success",
+        {
+            "Dashboard": f"http://127.0.0.1:{port}/dashboard",
+            "Metrics JSON": f"http://127.0.0.1:{port}/metrics",
+            "Server": mcp_server,
+        },
+    ))
+    console.print()
+    console.print(f"[{COLORS['muted']}]Press Ctrl+C to stop the dashboard.[/{COLORS['muted']}]")
+
+    import signal, threading
+
+    stop_event = threading.Event()
+
+    def _handle_sigint(sig, frame):
+        stop_event.set()
+
+    signal.signal(signal.SIGINT, _handle_sigint)
+
+    try:
+        stop_event.wait()
+    except KeyboardInterrupt:
+        pass
+    finally:
+        dash.stop()
+        console.print(f"\n[{COLORS['warning']}]Dashboard stopped.[/{COLORS['warning']}]")
 
 
 @app.command("validate")
