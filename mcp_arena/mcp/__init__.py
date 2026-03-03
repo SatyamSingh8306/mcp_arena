@@ -1,3 +1,3 @@
-from .server import BaseMCPServer
+from .server import BaseMCPServer, ToolRegistrationError
 
-__all__ = ["BaseMCPServer"]
+__all__ = ["BaseMCPServer", "ToolRegistrationError"]
