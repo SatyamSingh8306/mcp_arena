@@ -1,0 +1,48 @@
+name: "📚 Documentation"
+description: Report missing, incorrect, or unclear documentation
+title: "[Docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Help us improve the mcp_arena docs! Let us know what's missing, confusing, or incorrect.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Which part of the docs needs attention?
+      placeholder: "The section about X is missing information on..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: type
+    attributes:
+      label: Type of Issue
+      options:
+        - Missing documentation
+        - Incorrect / outdated information
+        - Unclear or confusing explanation
+        - Typo or formatting issue
+        - New documentation needed
+    validations:
+      required: true
+
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: Link or path to the affected documentation page or file.
+      placeholder: "e.g., docs/QUICKSTART.md or README.md"
+    validations:
+      required: false
+
+  - type: textarea
+    id: suggestion
+    attributes:
+      label: Suggested Improvement
+      description: How would you improve the documentation?
+    validations:
+      required: false
