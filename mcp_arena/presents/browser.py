@@ -20,7 +20,7 @@ _sync_api = None
 
 def _import_playwright():
     """Lazily import playwright modules."""
-    global _playwright, _async_api, _sync_api
+    global _playwright, _sync_api
     if _playwright is None:
         try:
             from playwright.sync_api import sync_playwright

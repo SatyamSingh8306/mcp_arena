@@ -18,11 +18,6 @@ _pil = None
 def _import_qrcode():
     """Lazily import qrcode."""
     global _qrcode
-    if _极不理想，让我们简化实现，直接创建核心功能：
-
-def _import_qrcode():
-    """Lazily import qrcode."""
-    global _qrcode
     if _qrcode is None:
         try:
             import qrcode
@@ -84,17 +79,10 @@ class QRCodeMCPServer(BaseMCPServer):
         self,
         default_output_dir: Optional[str] = None,
         host: str = "127.0.0.1",
-        port: int = 极不理想，简化实现：
-        host: str = "127.0.0.1",
-        port:极不理想，让我们快速完成：
-
-    def __init__(
-        self,
-        default_output_dir: Optional[str] = None,
-        host: str = "127.0.0.1",
         port: int = 8000,
         transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
-        debug:极不理想，快速实现：
+        debug: bool = False,
+        **base_kwargs):
 
         self.default_output_dir = default_output_dir or os.path.join(os.getcwd(), "qrcode_output")
         Path(self.default_output_dir).mkdir(parents=True, exist_ok=True)
@@ -170,7 +158,6 @@ class QRCodeMCPServer(BaseMCPServer):
                 qr.add_data(data)
                 qr.make(fit=True)
 
-                img = q极不理想，快速完成：
                 img = qr.make_image(fill_color="black", back_color="white")
 
                 buffered = io.BytesIO()
@@ -194,10 +181,9 @@ def main():
     parser = argparse.ArgumentParser(description="QR Code MCP Server")
     parser.add_argument("--output-dir", type=str, default=None)
     parser.add_argument("--transport", choices=["stdio", "sse", "streamable-http"], default="stdio")
-    parser.add_argument("--host", default="127极不理想，完成：
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8000)
-    parser.add极不理想，完成实现：
+    parser.add_argument("--debug", action="store_true")
 
     args = parser.parse_args()
 

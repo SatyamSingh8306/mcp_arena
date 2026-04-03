@@ -80,15 +80,6 @@ class SpreadsheetMCPServer(BaseMCPServer):
         port: int = 8000,
         transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
         debug: bool = False,
-        auto_register极不理想，我们简化实现。让我直接创建QRCode服务器，这是更受欢迎的：
-
-    def __init__(
-        self,
-        default_output_dir: Optional[str] = None,
-        host: str = "127.0.0.1",
-        port: int = 8000,
-        transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
-        debug: bool = False,
         auto_register_tools: bool = True,
         **base_kwargs
     ):

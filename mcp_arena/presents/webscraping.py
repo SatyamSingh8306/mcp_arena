@@ -212,7 +212,9 @@ class WebScrapingMCPServer(BaseMCPServer):
             port=port,
             transport=transport,
             debug=debug,
-            auto_register极不理想,我们继续实现核心功能。让我简化实现,专注于最重要的工具:
+            auto_register_tools=auto_register_tools,
+            **base_kwargs
+        )
 
         # Session for persistent connections
         self._session = None
@@ -563,7 +565,7 @@ class WebScrapingMCPServer(BaseMCPServer):
                 }
 
             except Exception as e:
-                return {"极不理想，让我重新实现一个更简单但功能完整的版本。让我们专注于核心功能：
+                return {"error": str(e)}
 
         @self.mcp_server.tool()
         def extract_emails(url: str) -> Dict[str, Any]:
@@ -608,4 +610,70 @@ class WebScrapingMCPServer(BaseMCPServer):
     def _register_api_tools(self):
         """Register API interaction tools."""
 
-        @self极不理想，时间有限，让我先完成几个核心工具，然后继续实现其他服务器。
+        @self.mcp_server.tool()
+        def make_api_request(
+            url: str,
+            method: str = "GET",
+            headers: Optional[Dict[str, str]] = None,
+            data: Optional[Dict[str, Any]] = None
+        ) -> Dict[str, Any]:
+            """Make an API request to a URL."""
+            try:
+                requests = _import_requests()
+                session = self._get_session()
+
+                kwargs = {"headers": headers or {}, "timeout": self.timeout}
+
+                if data:
+                    kwargs["json"] = data
+
+                if method.upper() == "GET":
+                    response = session.get(url, **kwargs)
+                elif method.upper() == "POST":
+                    response = session.post(url, **kwargs)
+                elif method.upper() == "PUT":
+                    response = session.put(url, **kwargs)
+                elif method.upper() == "DELETE":
+                    response = session.delete(url, **kwargs)
+                else:
+                    return {"error": f"Unsupported method: {method}"}
+
+                return {
+                    "success": True,
+                    "status_code": response.status_code,
+                    "headers": dict(response.headers),
+                    "content": response.text[:5000] if len(response.text) > 5000 else response.text
+                }
+
+            except Exception as e:
+                return {"error": str(e)}
+
+
+def main():
+    """Main entry point for the Web Scraping MCP Server."""
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Web Scraping MCP Server")
+    parser.add_argument("--output-dir", type=str, default=None)
+    parser.add_argument("--transport", choices=["stdio", "sse", "streamable-http"], default="stdio")
+    parser.add_argument("--host", default="127.0.0.1")
+    parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--debug", action="store_true")
+
+    args = parser.parse_args()
+
+    server = WebScrapingMCPServer(
+        default_output_dir=args.output_dir,
+        transport=args.transport,
+        host=args.host,
+        port=args.port,
+        debug=args.debug
+    )
+
+    print("Starting Web Scraping MCP Server")
+    server.run()
+
+
+if __name__ == "__main__":
+    main()
+
