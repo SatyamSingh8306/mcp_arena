@@ -41,7 +41,7 @@ COMPANY_INFO = {
     "documentation": "https://mcparena.vercel.app/docs",
     "community": "https://github.com/SatyamSingh8306/mcp_arena/discussions",
     "issues": "https://github.com/SatyamSingh8306/mcp_arena/issues",
-    "version": "0.2.3",
+    "version": "0.2.5",
     "license": "MIT",
     "author": "Satyam Singh",
     "tagline": "Build. Deploy. Orchestrate."
