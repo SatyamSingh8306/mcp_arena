@@ -1,6 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Literal, Annotated, Optional, Collection, List
+from typing import Literal, Annotated, Optional, Collection, List, Dict, Any
 from mcp.server.fastmcp import FastMCP
+
+from mcp_arena.mcp.metrics import MetricsCollector
+from mcp_arena.mcp.dashboard import DashboardServer
+
 
 class BaseMCPServer(ABC):
     def __init__(
@@ -19,7 +23,9 @@ class BaseMCPServer(ABC):
         json_response: bool = False,
         stateless_http: bool = False,
         dependencies: Collection[str] = (),
-        auto_register_tools: bool = True
+        auto_register_tools: bool = True,
+        enable_dashboard: bool = False,
+        dashboard_port: int = 9090,
     ):
         """Initialize the base MCP server.
         
@@ -39,6 +45,8 @@ class BaseMCPServer(ABC):
             stateless_http: Enable stateless HTTP mode
             dependencies: Additional dependencies
             auto_register_tools: Automatically register tools on initialization
+            enable_dashboard: Start a visual metrics dashboard on a separate port
+            dashboard_port: Port for the metrics dashboard (default 9090)
         """
         self.name = name
         self.description = description
@@ -67,6 +75,12 @@ class BaseMCPServer(ABC):
         # Store registered tools for reference
         self._registered_tools: List[str] = []
 
+        # Metrics & dashboard
+        self.metrics = MetricsCollector(server_name=name)
+        self._enable_dashboard = enable_dashboard
+        self._dashboard_port = dashboard_port
+        self._dashboard: Optional[DashboardServer] = None
+
         if auto_register_tools:
             self._register_tools()
 
@@ -86,12 +100,59 @@ class BaseMCPServer(ABC):
         """
         return self._registered_tools.copy()
 
+    # ------------------------------------------------------------------
+    # Metrics helpers
+    # ------------------------------------------------------------------
+
+    def get_metrics(self) -> Dict[str, Any]:
+        """Return current server metrics as a dictionary.
+        
+        Returns:
+            Dictionary containing uptime, request counts, tool usage, etc.
+        """
+        return self.metrics.get_metrics()
+
+    def start_dashboard(self, port: Optional[int] = None) -> str:
+        """Start the metrics dashboard on a background thread.
+        
+        Args:
+            port: Override the dashboard port (uses dashboard_port from init if not given).
+        
+        Returns:
+            The dashboard URL.
+        """
+        dash_port = port or self._dashboard_port
+        if self._dashboard is not None and self._dashboard.is_running:
+            return self._dashboard.url
+        self._dashboard = DashboardServer(
+            metrics_collector=self.metrics,
+            host="127.0.0.1",
+            port=dash_port,
+            server_name=self.name,
+        )
+        self._dashboard.start()
+        return self._dashboard.url
+
+    def stop_dashboard(self) -> None:
+        """Stop the metrics dashboard if running."""
+        if self._dashboard is not None:
+            self._dashboard.stop()
+            self._dashboard = None
+
+    # ------------------------------------------------------------------
+    # Server lifecycle
+    # ------------------------------------------------------------------
+
     def run(self, transport: Optional[Literal['stdio', 'sse', 'streamable-http']] = None) -> None:
         """Run the MCP server.
         
         Args:
             transport: Transport type (uses instance default if not specified)
         """
+        # Auto-start dashboard if enabled
+        if self._enable_dashboard:
+            self.start_dashboard()
+
         transport_to_use = transport or self.transport
         self.mcp_server.run(transport=transport_to_use)
     
