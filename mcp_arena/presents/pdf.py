@@ -4,6 +4,7 @@ A comprehensive PDF manipulation server using PyMuPDF, PyPDF2, and ReportLab for
 PDF operations including extraction, modification, conversion, and generation.
 """
 from typing import Optional, Dict, Any, List, Literal, Union
+from enum import Enum
 from dataclasses import dataclass, asdict
 from datetime import datetime
 import os

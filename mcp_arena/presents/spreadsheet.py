@@ -4,6 +4,7 @@ A comprehensive spreadsheet processing server using pandas and openpyxl for Exce
 CSV, and other spreadsheet format manipulation.
 """
 from typing import Optional, Dict, Any, List, Literal, Union
+from enum import Enum
 from dataclasses import dataclass, asdict
 import os
 import json
