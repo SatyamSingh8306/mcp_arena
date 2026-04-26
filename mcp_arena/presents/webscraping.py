@@ -4,6 +4,7 @@ A comprehensive web scraping server with advanced features for data extraction,
 content parsing, API interaction, and data transformation.
 """
 from typing import Optional, Dict, Any, List, Literal, Union
+from enum import Enum
 from dataclasses import dataclass, asdict
 from datetime import datetime
 import os

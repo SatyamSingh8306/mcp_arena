@@ -3,6 +3,7 @@ QR Code MCP Server
 A comprehensive QR code generation and scanning server using qrcode and opencv.
 """
 from typing import Optional, Dict, Any, List, Literal, Union
+from enum import Enum
 from dataclasses import dataclass, asdict
 import os
 import io
