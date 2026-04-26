@@ -44,7 +44,7 @@ def _import_pil():
     return _pil
 
 
-class QRCodeErrorCorrection(str, str):
+class QRCodeErrorCorrection(str, Enum):
     """QR code error correction levels."""
     LOW = "L"
     MEDIUM = "M"
@@ -52,7 +52,7 @@ class QRCodeErrorCorrection(str, str):
     HIGH = "H"
 
 
-class QRCodeFormat(str, str):
+class QRCodeFormat(str, Enum):
     """QR code output formats."""
     PNG = "png"
     JPEG = "jpeg"

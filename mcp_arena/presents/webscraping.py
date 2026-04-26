@@ -104,14 +104,14 @@ def _import_pandas():
     return _pandas
 
 
-class ScrapingMethod(str, str):
+class ScrapingMethod(str, Enum):
     """Web scraping methods."""
     REQUESTS = "requests"
     SELENIUM = "selenium"
     SCRAPY = "scrapy"
 
 
-class OutputFormat(str, str):
+class OutputFormat(str, Enum):
     """Output formats for scraped data."""
     JSON = "json"
     CSV = "csv"

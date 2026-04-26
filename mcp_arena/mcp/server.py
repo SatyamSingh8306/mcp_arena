@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Literal, Annotated, Optional, Collection, List
+from typing import Literal, Annotated, Optional, Collection, List, Dict, Callable, Any
 from mcp.server.fastmcp import FastMCP
 
 class BaseMCPServer(ABC):
@@ -64,11 +64,14 @@ class BaseMCPServer(ABC):
             dependencies=dependencies
         )
         
-        # Store registered tools for reference
-        self._registered_tools: List[str] = []
+        # Store registered tools for agent wrapper compatibility
+        self._registered_tools: Dict[str, Callable[..., Any]] = {}
 
         if auto_register_tools:
             self._register_tools()
+
+        # After registration, sync tools from FastMCP for agent wrapper access
+        self._sync_registered_tools()
 
     @abstractmethod
     def _register_tools(self) -> None:
@@ -78,13 +81,23 @@ class BaseMCPServer(ABC):
     def __getattr__(self, name):
         return getattr(self.mcp_server, name)
 
+    def _sync_registered_tools(self) -> None:
+        """Sync registered tools from FastMCP for agent wrapper access."""
+        # FastMCP stores tools in _tools dict
+        if hasattr(self.mcp_server, '_tools'):
+            for name, tool_info in self.mcp_server._tools.items():
+                if isinstance(tool_info, dict) and 'fn' in tool_info:
+                    self._registered_tools[name] = tool_info['fn']
+                else:
+                    self._registered_tools[name] = tool_info
+
     def get_registered_tools(self) -> List[str]:
         """Get list of registered tool names.
-        
+
         Returns:
             List of registered tool names
         """
-        return self._registered_tools.copy()
+        return list(self._registered_tools.keys())
 
     def run(self, transport: Optional[Literal['stdio', 'sse', 'streamable-http']] = None) -> None:
         """Run the MCP server.

@@ -197,16 +197,18 @@ math_response = await agent.ainvoke(
 
 ## 📚 Available Presets
 
-### Development Platforms
-- **GitHub** - Repositories, issues, PRs, workflows
-- **GitLab** - Projects, CI/CD, issues  
-- **Bitbucket** - Repositories and pipelines
+### Browser & Automation
+- **Browser** - Browser automation with Playwright (navigate, screenshot, forms, extract data)
+- **Screen Capture** - Take screenshots and screen recordings with PyAutoGUI
 
-### Data & Storage
-- **PostgreSQL** - Database operations
-- **MongoDB** - Document operations
-- **Redis** - Cache and data structures
-- **VectorDB** - Vector database operations
+### Video & Media
+- **Video** - Video editing (trim, merge, effects, format conversion) with FFmpeg
+- **PDF** - PDF processing (extract text/images, merge, split, watermark, encrypt)
+- **QR Code** - Generate and decode QR codes
+
+### Data & Files
+- **Spreadsheet** - Excel/CSV read/write with pandas and openpyxl
+- **Web Scraping** - Extract data from websites with requests and BeautifulSoup
 
 ### Communication
 - **Slack** - Channels, messages, workflows
@@ -215,6 +217,12 @@ math_response = await agent.ainvoke(
 - **Outlook** - Microsoft 365 email and calendar
 - **Discord** - Servers and channels
 - **Teams** - Microsoft Teams integration
+- **Notification** - Multi-platform notifications (Email, Slack, webhooks)
+
+### Development Platforms
+- **GitHub** - Repositories, issues, PRs, workflows
+- **GitLab** - Projects, CI/CD, issues
+- **Bitbucket** - Repositories and pipelines
 
 ### Productivity
 - **Notion** - Databases, pages, blocks
@@ -315,52 +323,80 @@ Integrate mcp_arena MCP servers with LangChain agents for powerful multi-service
 
 ```python
 from langchain_openai import ChatOpenAI
-from mcp_arena.wrapper.langchain_integration import AsyncMCPLangChainIntegration
+from mcp_arena.wrapper.langchain_wrapper import MCPLangChainWrapper
+from mcp_arena.presents.browser import BrowserMCPServer
 
 # Initialize LLM
-llm = ChatOpenAI(model="gpt-4")
+llm = ChatOpenAI(model="gpt-4-turbo")
 
-# Create integration with automatic setup
-async with AsyncMCPLangChainIntegration(llm) as integration:
-    # Add your MCP servers
-    integration.add_github_server(token="your_github_token")
-    integration.add_slack_server(bot_token="xoxb-your-slack-token")
-    integration.add_gmail_server(
-        credentials_path="path/to/credentials.json",
-        token_path="path/to/token.json"
-    )
-    
-    # Use the unified agent
-    response = await integration.invoke(
-        "Check my latest GitHub commits and summarize important emails"
-    )
-    print(response)
+# Create wrapper with browser server
+wrapper = MCPLangChainWrapper(
+    servers={"browser": BrowserMCPServer(headless=True)},
+    auto_start=True
+)
+
+# Connect and create agent
+await wrapper.connect()
+agent = wrapper.create_agent(
+    llm=llm,
+    system_prompt="You are a helpful browser automation assistant"
+)
+
+# Use the agent
+response = await wrapper.invoke_agent(
+    agent,
+    "Go to example.com and tell me the page title"
+)
 ```
 
-### Quick Setup Examples
+### Multi-Server Agent Example
 
-**GitHub Agent:**
 ```python
-async with AsyncMCPLangChainIntegration(llm) as integration:
-    integration.add_github_server(token="your_token")
-    response = await integration.invoke("List my GitHub repositories")
-```
+from langchain_openai import ChatOpenAI
+from mcp_arena.wrapper.langchain_wrapper import MCPLangChainWrapper
+from mcp_arena.presents.browser import BrowserMCPServer
+from mcp_arena.presents.pdf import PDFMCPServer
+from mcp_arena.presents.web_scraping import WebScrapingMCPServer
 
-**Multi-Service Agent:**
-```python
-async with AsyncMCPLangChainIntegration(llm) as integration:
-    integration.add_github_server(token="github_token")
-    integration.add_slack_server(bot_token="slack_token")
-    response = await integration.invoke("Deploy latest code and notify in Slack")
+# Initialize LLM
+llm = ChatOpenAI(model="gpt-4-turbo")
+
+# Create wrapper with multiple servers
+wrapper = MCPLangChainWrapper(
+    servers={
+        "browser": BrowserMCPServer(headless=True),
+        "pdf": PDFMCPServer(),
+        "web": WebScrapingMCPServer()
+    },
+    auto_start=True
+)
+
+# Connect and create agent with all tools
+await wrapper.connect()
+agent = wrapper.create_agent(
+    llm=llm,
+    system_prompt="""You are a powerful research assistant with access to:
+    - Browser automation (navigate websites, take screenshots)
+    - PDF processing (extract text, merge, split)
+    - Web scraping (extract data from websites)
+    """
+)
+
+# Use the agent
+response = await wrapper.invoke_agent(
+    agent,
+    "Research climate change: find a Wikipedia article, take a screenshot, and extract key facts to a PDF"
+)
 ```
 
 **Installation:**
 ```bash
 pip install langchain-openai langchain-mcp-adapters
-pip install "mcp_arena[communication]"
+pip install "mcp-arena[browser,video,pdf,webscraping]"
 ```
 
 📖 **[Full Documentation](docs/LANGCHAIN_INTEGRATION.md)**
+📖 **[Agent Examples](mcp_arena/examples/mcp_server_agent_examples.py)**
 
 ## 🏗️ Custom MCP Server
 
@@ -431,6 +467,33 @@ MCP Client
 ```bash
 # Core only
 pip install mcp-arena[core]
+
+# Browser automation
+pip install mcp-arena[browser]
+
+# Video editing
+pip install mcp-arena[video]
+
+# PDF processing
+pip install mcp-arena[pdf]
+
+# QR code generation
+pip install mcp-arena[qrcode]
+
+# Spreadsheet operations
+pip install mcp-arena[spreadsheet]
+
+# Web scraping
+pip install mcp-arena[webscraping]
+
+# Screen capture
+pip install mcp-arena[screencapture]
+
+# Cloud storage (AWS S3, GCS, Azure)
+pip install mcp-arena[cloudstorage]
+
+# Notifications (Email, Slack, webhooks)
+pip install mcp-arena[notification]
 
 # Development platforms
 pip install mcp-arena[github,gitlab,bitbucket]

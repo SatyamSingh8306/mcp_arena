@@ -88,7 +88,7 @@ def _import_pdfplumber():
     return _pdfplumber
 
 
-class PDFFormat(str, str):
+class PDFFormat(str, Enum):
     """PDF formats and conversions."""
     PDF = "pdf"
     TXT = "txt"
@@ -98,7 +98,7 @@ class PDFFormat(str, str):
     SVG = "svg"
 
 
-class PageLayout(str, str):
+class PageLayout(str, Enum):
     """Page layout options."""
     PORTRAIT = "portrait"
     LANDSCAPE = "landscape"

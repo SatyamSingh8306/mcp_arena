@@ -48,7 +48,7 @@ def _import_openpyxl():
     return _openpyxl
 
 
-class SpreadsheetFormat(str, str):
+class SpreadsheetFormat(str, Enum):
     """Spreadsheet format enumeration."""
     CSV = "csv"
     EXCEL = "xlsx"
