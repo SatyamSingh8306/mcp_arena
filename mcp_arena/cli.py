@@ -29,6 +29,48 @@ app = typer.Typer(
 )
 console = Console()
 
+# ASCII Art Logos
+LOGO_MCP = [
+  '███╗   ███╗ ██████╗██████╗ ',
+  '████╗ ████║██╔════╝██╔══██╗',
+  '██╔████╔██║██║     ██████╔╝',
+  '██║╚██╔╝██║██║     ██╔═══╝ ',
+  '██║ ╚═╝ ██║╚██████╗██║     ',
+  '╚═╝     ╚═╝ ╚═════╝╚═╝     ',
+]
+
+LOGO_ARENA = [
+    " █████╗ ██████╗ ███████╗███╗   ██╗ █████╗ ",
+    "██╔══██╗██╔══██╗██╔════╝████╗  ██║██╔══██╗",
+    "███████║██████╔╝█████╗  ██╔██╗ ██║███████║",
+    "██╔══██║██╔══██╗██╔══╝  ██║╚██╗██║██╔══██║",
+    "██║  ██║██║  ██║███████╗██║ ╚████║██║  ██║",
+    "╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═══╝╚═╝  ╚═╝",
+]
+
+
+def print_logo():
+    """Print the MCP Arena ASCII art logo."""
+    # Combine both logos side by side
+    mcp_width = max(len(line) for line in LOGO_MCP)
+    arena_lines = LOGO_ARENA
+    mcp_lines = LOGO_MCP
+
+    # Pad MCP lines to match arena height if needed
+    while len(mcp_lines) < len(arena_lines):
+        mcp_lines = [" " * mcp_width] + mcp_lines
+
+    logo_text = Text()
+    for mcp_line, arena_line in zip(mcp_lines, arena_lines):
+        logo_text.append(mcp_line, style=f"bold {COLORS['primary']}")
+        logo_text.append("  ", style="")
+        logo_text.append(arena_line, style=f"bold {COLORS['accent']}")
+        logo_text.append("\n", style="")
+
+    console.print(logo_text)
+    console.print()
+
+
 PRESETS_DIR = Path(__file__).parent / "presents"
 
 # Company Information
@@ -41,7 +83,7 @@ COMPANY_INFO = {
     "documentation": "https://mcparena.vercel.app/docs",
     "community": "https://github.com/SatyamSingh8306/mcp_arena/discussions",
     "issues": "https://github.com/SatyamSingh8306/mcp_arena/issues",
-    "version": "0.2.5",
+    "version": "0.3.0",
     "license": "MIT",
     "author": "Satyam Singh",
     "tagline": "Build. Deploy. Orchestrate."
@@ -227,7 +269,7 @@ def show_about():
     """
     Display information about MCP Arena and company details.
     """
-    console.print(create_header("ABOUT MCP ARENA", COMPANY_INFO["tagline"]))
+    print_logo()
     console.print()
     
     # Company overview
@@ -328,7 +370,7 @@ def list_presets(
     """
     List all available MCP server presets.
     """
-    console.print(create_header("MCP ARENA", "Available Server Presets"))
+    print_logo()
     console.print()
     
     presets = _get_available_presets()
@@ -500,6 +542,9 @@ def run(
     
     Additional server-specific arguments can be passed as --argument-name value.
     """
+    # Display ASCII art logo
+    print_logo()
+
     stages = [
         ("Validating preset", 0.2),
         ("Loading module", 0.4),
