@@ -90,16 +90,41 @@ class IAgentFactory(ABC):
 
 
 class IAgent(ABC):
-    """Main interface for agents"""
-    
+    """Main interface for agents.
+
+    All agent implementations must inherit from this interface and implement
+    the required abstract methods. The run() method serves as the primary
+    execution entry point, providing a consistent API across all agent types.
+    """
+
     @abstractmethod
     def initialize(self, config: Dict[str, Any]) -> None:
-        """Initialize the agent"""
+        """Initialize the agent with configuration."""
         pass
-    
+
+    @abstractmethod
+    def run(self, input_data: Any) -> Any:
+        """Run the agent with input data.
+
+        This is the primary execution method that provides a consistent API
+        across all agent types. It delegates to process() by default but can
+        be overridden for custom behavior.
+
+        Args:
+            input_data: The input to process (typically a string or dict).
+
+        Returns:
+            The agent's response after processing the input.
+        """
+        pass
+
     @abstractmethod
     def process(self, input_data: Any) -> Any:
-        """Process input and return response"""
+        """Process input and return response.
+
+        This method contains the core processing logic. The run() method
+        typically delegates to this method.
+        """
         pass
     
     @abstractmethod
