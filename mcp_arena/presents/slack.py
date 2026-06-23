@@ -5,7 +5,7 @@ from dataclasses import dataclass, asdict, field
 from enum import Enum
 import os
 import json
-from slack_sdk import WebClient
+import slack_sdk
 from slack_sdk.errors import SlackApiError
 from mcp_arena.mcp.server import BaseMCPServer
 
@@ -79,15 +79,26 @@ class SlackMCPServer(BaseMCPServer):
             auto_register_tools: Automatically register tools on initialization
             **base_kwargs: Additional arguments for BaseMCPServer
         """
-        self.__token = token or os.getenv("SLACK_TOKEN")
-        if not self.__token:
-            raise ValueError(
-                "Slack token is required. "
-                "Provide it as argument or set SLACK_TOKEN environment variable."
+        bot_token = base_kwargs.pop("bot_token", None)
+
+        resolved_token = (
+                      token
+                      or bot_token
+                      or os.getenv("SLACK_TOKEN")
+        )
+
+        if not resolved_token:
+           raise ValueError(
+            "Slack token is required. "
+               "Provide it as argument or set SLACK_TOKEN environment variable."
             )
+
+        # Bypass BaseMCPServer attribute delegation
+        object.__setattr__(self, "bot_token", resolved_token)
+        object.__setattr__(self, "auto_register_tools", auto_register_tools)
         
         # Initialize Slack client
-        self.client = WebClient(token=self.__token)
+        self.client = slack_sdk.WebClient(token=self.bot_token)
         
         # Initialize base class
         super().__init__(
