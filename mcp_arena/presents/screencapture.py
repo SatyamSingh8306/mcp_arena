@@ -9,8 +9,9 @@ from typing import Any, Dict, List, Literal, Optional
 from mcp_arena.mcp.server import BaseMCPServer
 
 try:
-    import pyautogui as _pyautogui
-except ImportError:
+    # pyautogui raises KeyError on Linux CI runners that lack $DISPLAY.
+    import pyautogui as _pyautogui  # noqa: F401
+except (ImportError, KeyError, Exception):
     _pyautogui = None
 
 try:

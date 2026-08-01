@@ -12,7 +12,19 @@ from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
 from langchain_chroma import Chroma
-from langchain_community.vectorstores import Pinecone as LCPinecone
+
+# `langchain_community.vectorstores.Pinecone` was removed in newer
+# langchain-community (moved to the standalone `langchain-pinecone` package).
+# Keep the import optional so the module loads even when Pinecone isn't wanted.
+try:
+    from langchain_community.vectorstores import Pinecone as LCPinecone
+except ImportError:
+    LCPinecone = None
+
+try:
+    from langchain_pinecone import Pinecone as _LCPineconeV2
+except ImportError:
+    _LCPineconeV2 = None
 
 from mcp_arena.mcp.server import BaseMCPServer
 
@@ -37,7 +49,15 @@ class VectorDBMCPServer(BaseMCPServer):
     MCP Server for Vector Database operations.
     Supports flexible switching between Embedding models and Vector Stores.
     """
-    _REQUIRED_EXTRAS = {"chromadb": "vectordb", "langchain_chroma": "vectordb", "langchain_community": "vectordb", "langchain_huggingface": "vectordb", "langchain_openai": "vectordb"}
+    _REQUIRED_EXTRAS = {
+        "chromadb": "vectordb",
+        "langchain_chroma": "vectordb",
+        "langchain_community": "vectordb",
+        "langchain_huggingface": "vectordb",
+        "langchain_openai": "vectordb",
+        # `langchain_pinecone` is only needed if the user opts into Pinecone.
+        "langchain_pinecone": "vectordb",
+    }
     
     def __init__(
         self,
@@ -148,7 +168,16 @@ class VectorDBMCPServer(BaseMCPServer):
         elif provider == VectorStoreType.PINECONE:
             if not pinecone_key or not pinecone_index:
                 raise ValueError("Pinecone credentials missing")
-            return LCPinecone.from_existing_index(
+            # Prefer the modern `langchain_pinecone` package; fall back to the
+            # legacy `langchain_community.vectorstores.Pinecone` if available.
+            impl = _LCPineconeV2 or LCPinecone
+            if impl is None:
+                raise ImportError(
+                    "Pinecone support requires `langchain-pinecone` or the "
+                    "legacy `langchain-community<0.4`. "
+                    "Install with: pip install langchain-pinecone"
+                )
+            return impl.from_existing_index(
                 index_name=pinecone_index,
                 embedding=self.embeddings
             )

@@ -138,3 +138,28 @@ class TestCorePresetsAreInstallableWithoutExtras:
 
         s = SMTPServer(smtp_host="localhost")
         assert s.name == "SMTP MCP Server"
+
+
+class TestOptionalHeavyImports:
+    """Some presets use top-level imports of optional/heavy packages. They
+    must NOT break module import on the CI runner when those packages move
+    between langchain namespaces."""
+
+    def test_vectordb_module_loads_with_pinecone_optional(self):
+        """`langchain_community.vectorstores.Pinecone` was removed in newer
+        versions (moved to `langchain_pinecone`). The vectordb preset must
+        still load even when the legacy import isn't available."""
+        import mcp_arena.presents.vectordb as vectordb_mod
+
+        # At least one of the two backends must be importable in this env.
+        assert vectordb_mod.LCPinecone is not None or vectordb_mod._LCPineconeV2 is not None, (
+            "Neither legacy (langchain-community) nor modern (langchain-pinecone) "
+            "Pinecone backend is available — the module should be unusable."
+        )
+
+    def test_screencapture_module_loads_when_pyautogui_raises(self):
+        """`pyautogui` raises KeyError('$DISPLAY') on headless CI runners.
+        screencapture.py must catch that and keep `_pyautogui` as None."""
+        from mcp_arena.presents import screencapture
+        assert hasattr(screencapture, "_pyautogui")
+        assert hasattr(screencapture, "_ensure_pyautogui")
