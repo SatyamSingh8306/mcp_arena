@@ -37,6 +37,7 @@ from mcp_arena.mcp.server import BaseMCPServer
 
 class MongoDBMCPServer(BaseMCPServer):
     """MongoDB MCP Server for interacting with MongoDB databases and collections."""
+    _REQUIRED_EXTRAS = {"bson": "mongodb", "pymongo": "mongodb"}
     
     def __init__(
         self,
@@ -271,3 +272,4 @@ class MongoDBMCPServer(BaseMCPServer):
                 }
             except (PyMongoError, json.JSONDecodeError) as e:
                 return {"error": f"Failed to insert document: {str(e)}"}
+

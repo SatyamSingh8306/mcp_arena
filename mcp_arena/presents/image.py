@@ -41,6 +41,7 @@ def _ensure_cv2():
 
 class ImageMCPServer(BaseMCPServer):
     """Image processing MCP server (Pillow + OpenCV)."""
+    _REQUIRED_EXTRAS = {"PIL": "image", "cv2": "image"}
 
     def __init__(
         self,
@@ -1062,3 +1063,4 @@ class ImageMCPServer(BaseMCPServer):
                 }
             except Exception as e:
                 return {"error": str(e)}
+

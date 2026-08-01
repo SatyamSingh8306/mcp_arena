@@ -32,6 +32,7 @@ def _ensure_slack():
 
 class NotificationMCPServer(BaseMCPServer):
     """Notification MCP server (email, Slack, webhook)."""
+    _REQUIRED_EXTRAS = {"requests": "notification", "slack_sdk": "notification"}
 
     def __init__(
         self,
@@ -158,3 +159,4 @@ class NotificationMCPServer(BaseMCPServer):
                 }
             except Exception as exc:
                 return {"error": str(exc), "type": "webhook"}
+

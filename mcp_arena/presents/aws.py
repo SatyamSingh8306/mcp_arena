@@ -15,6 +15,7 @@ class S3ObjectInfo:
 
 class S3MCPServer(BaseMCPServer):
     """AWS S3 MCP Server for S3 bucket and object operations."""
+    _REQUIRED_EXTRAS = {"boto3": "cloudstorage"}
     
     def __init__(
         self,

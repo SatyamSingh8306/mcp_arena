@@ -138,6 +138,7 @@ class TransitionInfo:
 
 class JiraMCPServer(BaseMCPServer):
     """Jira MCP Server for Atlassian Jira operations."""
+    _REQUIRED_EXTRAS = {"atlassian": "bitbucket"}
     
     def __init__(
         self,

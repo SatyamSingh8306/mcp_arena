@@ -41,6 +41,7 @@ class BrowserSession(TypedDict, total=False):
 
 class BrowserMCPServer(BaseMCPServer):
     """Browser Automation MCP Server using Playwright (async API)."""
+    _REQUIRED_EXTRAS = {"PIL": "browser", "cv2": "browser", "playwright": "browser"}
 
     _instances: Dict[str, Any] = {}
     _pw = None  # async playwright instance

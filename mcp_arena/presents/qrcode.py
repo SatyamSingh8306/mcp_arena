@@ -26,6 +26,7 @@ def _ensure_qrcode():
 
 class QRCodeMCPServer(BaseMCPServer):
     """QR code generation and scanning server."""
+    _REQUIRED_EXTRAS = {"PIL": "qrcode", "qrcode": "qrcode"}
 
     def __init__(
         self,
@@ -110,3 +111,4 @@ class QRCodeMCPServer(BaseMCPServer):
                 }
             except Exception as exc:
                 return {"error": str(exc)}
+

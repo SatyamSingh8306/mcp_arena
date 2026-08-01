@@ -41,6 +41,7 @@ from mcp_arena.mcp.server import BaseMCPServer
 
 class PostgresMCPServer(BaseMCPServer):
     """PostgreSQL MCP Server for interacting with PostgreSQL databases."""
+    _REQUIRED_EXTRAS = {"psycopg2": "postgres"}
     
     def __init__(
         self,

@@ -29,6 +29,7 @@ def _ensure_gcs():
 
 class CloudStorageMCPServer(BaseMCPServer):
     """Cloud storage MCP server (AWS S3, Google GCS)."""
+    _REQUIRED_EXTRAS = {"boto3": "cloudstorage", "google.cloud.storage": "cloudstorage"}
 
     def __init__(
         self,
@@ -226,3 +227,4 @@ class CloudStorageMCPServer(BaseMCPServer):
                 "gcs_project": self.gcs_project_id,
                 "gcs_bucket": self.gcs_bucket_name,
             }
+

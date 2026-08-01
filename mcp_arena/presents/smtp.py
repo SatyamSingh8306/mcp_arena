@@ -12,6 +12,7 @@ from mcp_arena.mcp.server import BaseMCPServer
 
 class SMTPServer(BaseMCPServer):
     """SMTP MCP server."""
+    _REQUIRED_EXTRAS = {}
 
     def __init__(
         self,
@@ -116,3 +117,4 @@ class SMTPServer(BaseMCPServer):
                 return {"status": "success", "message": "SMTP connection successful"}
             except Exception as exc:
                 return {"status": "error", "error": str(exc)}
+

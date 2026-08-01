@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp_arena"
-version = "0.4.0"
+version = "0.4.1"
 description = "An opinionated Python library for building MCP (Model Context Protocol) servers with presets and a one-line bridge to LangChain agents."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -25,10 +25,12 @@ classifiers = [
 ]
 
 # ------------------------
-# Core dependencies (SAFE)
+# Core dependencies
 # ------------------------
-# Only the bare minimum needed for `import mcp_arena`. Heavy deps are
-# pulled in by extras (`pip install mcp-arena[browser]`).
+# Everything `pip install mcp-arena` ships with. The general-purpose MCP
+# server presets (local_operation, generic_api, smtp) are intentionally
+# included in core so a fresh install can actually run an MCP server
+# without any extra. Everything else is gated behind extras.
 dependencies = [
     "mcp>=1.25,<2.0",
     "python-dotenv>=1.0,<2.0",
@@ -38,6 +40,9 @@ dependencies = [
     # CLI
     "typer>=0.9.0",
     "rich>=13.0.0",
+    # Built-in presets — general-purpose
+    "pyautogui>=0.9,<1.0",
+    "httpx>=0.27",
 ]
 
 # ------------------------
@@ -108,6 +113,10 @@ local_operation = [
 # ------------------------
 # MCP SERVERS (NEW)
 # ------------------------
+# Note: `local_operation`, `generic_api`, and `smtp` are part of core deps
+# (pip install mcp-arena installs them by default). Their previous `[extra]`
+# blocks are kept as no-op aliases so existing `mcp-arena[local_operation]`
+# / `mcp-arena[generic_api]` install commands still work.
 
 browser = [
     "playwright>=1.45",
@@ -167,9 +176,8 @@ cloudstorage = [
     "google-cloud-storage>=2.16",
 ]
 
-generic_api = [
-    "httpx>=0.27",
-]
+# generic_api moved to core deps — kept as a no-op alias for back-compat.
+generic_api = []
 
 mail = [
     "mcp_arena[gmail,outlook]"
@@ -192,8 +200,8 @@ dev = [
 # Bundles
 # ------------------------
 all = [
-    "mcp_arena[agents,vectordb,github,gitlab,bitbucket,postgres,mongodb,redis,docker,kubernetes,local_operation,communication]",
-    "mcp_arena[browser,image,video,audio,pdf,qrcode,webscraping,spreadsheet,notification,screencapture,cloudstorage,generic_api,mail]",
+    "mcp_arena[agents,vectordb,github,gitlab,bitbucket,postgres,mongodb,redis,docker,kubernetes,communication]",
+    "mcp_arena[browser,image,video,audio,pdf,qrcode,webscraping,spreadsheet,notification,screencapture,cloudstorage,mail]",
 ]
 
 complete = [

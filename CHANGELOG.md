@@ -2,7 +2,7 @@
 
 All notable changes to `mcp_arena` are documented here. Versions follow [SemVer](https://semver.org/). This project is pre-1.0; breaking changes may land in minor versions.
 
-## [0.4.0] — 2026-08-01
+## [0.4.1] — 2026-08-01
 
 ### Removed
 - `mcp_arena.agent.react_agent.ReactAgent`
@@ -27,7 +27,10 @@ All notable changes to `mcp_arena` are documented here. Versions follow [SemVer]
 - `mcp_arena.present.__init__` is now an AST-driven lazy loader — `*Server` classes are discovered from `mcp_arena/presents/*.py` at import time, so dropping in a new preset auto-exports it.
 
 ### Changed
-- **PyPI:** `mcp-arena[agents]` extra now installs `langchain>=1.0,<2.0` and `langchain-mcp-adapters>=0.1,<1.0` (the typo'd non-existent `langchain-agent` is gone). `langchain-groq` is no longer auto-installed — install the LLM provider you actually use.
+- **Core install now ships three MCP server presets out of the box:** `LocalOperationsMCPServer` (file / system / process tools), `GenericAPIMCPServer` (any HTTP API call), and `SMTPServer` (outbound email via stdlib). No extra required — `pip install mcp-arena` lets you run a working MCP server.
+- **Friendly missing-extra error:** every preset declares `_REQUIRED_EXTRAS = {"pkg_name": "extra_name", ...}`. Constructing a preset whose required dep isn't installed now raises an `ImportError` with the exact `pip install "mcp-arena[<extra>]"` command, instead of silently registering zero tools. Verified by `tests/test_required_extras.py`.
+- **PyPI:** `mcp-arena[agents]` extra installs `langchain>=1.0,<2.0` and `langchain-mcp-adapters>=0.1,<1.0`. `langchain-groq` is no longer auto-installed — install the LLM provider you actually use.
+- **Back-compat aliases:** `[local_operation]` and `[generic_api]` are now no-op extras so existing `pip install mcp-arena[local_operation]` / `[generic_api]` commands still work.
 - **CLI:** `mcp_arena` and `mcp-arena` entry points unchanged.
 - **Presets:** `_config_for` in the new builder uses `streamable_http` (the correct MCP adapter value) for HTTP and `sse` for SSE; the prior `streamable-http` (hyphen) variant is gone.
 - **Tests:** 14 new tests in `tests/test_make_mcp_agent.py` covering `_config_for` (4 transports), `make_mcp_agent` (empty-server guard, build path, name filter, full kwargs-forwarding), and the `ToolRegistry` API. Old legacy-agent tests removed.

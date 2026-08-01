@@ -57,6 +57,7 @@ class SlackUserInfo:
 
 class SlackMCPServer(BaseMCPServer):
     """Slack MCP Server for interacting with Slack channels, messages, and users."""
+    _REQUIRED_EXTRAS = {"slack_sdk": "slack"}
     
     def __init__(
         self,

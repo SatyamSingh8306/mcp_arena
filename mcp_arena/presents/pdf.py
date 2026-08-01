@@ -67,6 +67,7 @@ def _ensure_pdfplumber():
 
 class PDFMCPServer(BaseMCPServer):
     """PDF processing MCP server (PyMuPDF, PyPDF2, ReportLab)."""
+    _REQUIRED_EXTRAS = {"PyPDF2": "pdf", "fitz": "pdf", "pdfplumber": "pdf", "reportlab": "pdf"}
 
     def __init__(
         self,

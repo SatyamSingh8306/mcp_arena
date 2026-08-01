@@ -19,6 +19,7 @@ def _ensure_twilio():
 
 class WhatsAppMCPServer(BaseMCPServer):
     """WhatsApp messaging MCP server (Twilio)."""
+    _REQUIRED_EXTRAS = {"twilio": "whatsapp"}
 
     def __init__(
         self,
@@ -115,3 +116,4 @@ class WhatsAppMCPServer(BaseMCPServer):
                     {"name": "appointment_reminder", "language": "en", "status": "approved"},
                 ]
             }
+

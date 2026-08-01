@@ -161,6 +161,7 @@ class FileInfo:
 
 class GitLabMCPServer(BaseMCPServer):
     """GitLab MCP Server for GitLab platform operations."""
+    _REQUIRED_EXTRAS = {"gitlab": "gitlab"}
     
     def __init__(
         self,

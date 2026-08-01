@@ -9,6 +9,7 @@ from mcp_arena.mcp.server import BaseMCPServer
 
 class GenericAPIMCPServer(BaseMCPServer):
     """Generic API MCP Server for making any API call."""
+    _REQUIRED_EXTRAS = {"httpx": "generic_api"}
 
     def __init__(
         self,

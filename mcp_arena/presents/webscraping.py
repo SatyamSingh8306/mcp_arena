@@ -34,6 +34,7 @@ def _ensure_bs4():
 
 class WebScrapingMCPServer(BaseMCPServer):
     """Web scraping MCP server."""
+    _REQUIRED_EXTRAS = {"bs4": "webscraping", "requests": "webscraping", "selenium": "webscraping"}
 
     def __init__(
         self,
@@ -293,3 +294,4 @@ class WebScrapingMCPServer(BaseMCPServer):
                 f.write(data.get("html", "") if isinstance(data, dict) else str(data))
             else:
                 f.write(str(data))
+

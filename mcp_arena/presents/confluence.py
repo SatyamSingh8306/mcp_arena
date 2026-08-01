@@ -117,6 +117,7 @@ class SearchResult:
 
 class ConfluenceMCPServer(BaseMCPServer):
     """Confluence MCP Server for Atlassian Confluence operations."""
+    _REQUIRED_EXTRAS = {"atlassian": "bitbucket", "html2text": "bitbucket"}
     
     def __init__(
         self,

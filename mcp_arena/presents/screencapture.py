@@ -37,6 +37,7 @@ def _timestamp() -> str:
 
 class ScreenCaptureMCPServer(BaseMCPServer):
     """Screen capture MCP server (screenshots and metadata)."""
+    _REQUIRED_EXTRAS = {"pyautogui": "screencapture"}
 
     def __init__(
         self,
@@ -118,3 +119,4 @@ class ScreenCaptureMCPServer(BaseMCPServer):
                 return {"success": True, "width": size[0], "height": size[1]}
             except Exception as exc:
                 return {"error": str(exc)}
+

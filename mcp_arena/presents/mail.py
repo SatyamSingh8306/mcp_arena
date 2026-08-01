@@ -35,6 +35,7 @@ def _ensure_gmail():
 
 class GmailMCPServer(BaseMCPServer):
     """Gmail MCP server."""
+    _REQUIRED_EXTRAS = {"googleapiclient": "mail", "msal": "mail"}
 
     def __init__(
         self,
@@ -143,3 +144,4 @@ class GmailMCPServer(BaseMCPServer):
                 userId="me", body={"message": {"raw": raw}},
             ).execute()
             return {"draft_id": response["id"]}
+

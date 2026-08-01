@@ -37,6 +37,7 @@ class VectorDBMCPServer(BaseMCPServer):
     MCP Server for Vector Database operations.
     Supports flexible switching between Embedding models and Vector Stores.
     """
+    _REQUIRED_EXTRAS = {"chromadb": "vectordb", "langchain_chroma": "vectordb", "langchain_community": "vectordb", "langchain_huggingface": "vectordb", "langchain_openai": "vectordb"}
     
     def __init__(
         self,

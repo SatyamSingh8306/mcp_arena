@@ -54,6 +54,7 @@ def _ensure_moviepy():
 
 class VideoMCPServer(BaseMCPServer):
     """Video Editing MCP Server for advanced video manipulation."""
+    _REQUIRED_EXTRAS = {"moviepy": "video", "numpy": "video"}
 
     def __init__(
         self,
@@ -1884,3 +1885,4 @@ class VideoMCPServer(BaseMCPServer):
                 }
             except Exception as e:
                 return {"error": str(e)}
+

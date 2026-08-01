@@ -11,6 +11,7 @@ GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 
 class OutlookMCPServer(BaseMCPServer):
     """Microsoft Outlook MCP server (email + calendar)."""
+    _REQUIRED_EXTRAS = {"msal": "outlook", "requests": "outlook"}
 
     def __init__(
         self,
@@ -141,3 +142,4 @@ class OutlookMCPServer(BaseMCPServer):
             )
             response.raise_for_status()
             return response.json()
+

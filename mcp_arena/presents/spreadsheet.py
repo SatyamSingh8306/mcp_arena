@@ -19,6 +19,7 @@ def _ensure_pandas():
 
 class SpreadsheetMCPServer(BaseMCPServer):
     """Spreadsheet MCP server."""
+    _REQUIRED_EXTRAS = {"openpyxl": "spreadsheet", "pandas": "spreadsheet"}
 
     def __init__(
         self,
@@ -85,3 +86,4 @@ class SpreadsheetMCPServer(BaseMCPServer):
                 }
             except Exception as exc:
                 return {"error": str(exc)}
+

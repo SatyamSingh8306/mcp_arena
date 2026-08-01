@@ -139,6 +139,7 @@ class FileInfo:
 
 class BitbucketMCPServer(BaseMCPServer):
     """Bitbucket MCP Server for Bitbucket Cloud operations."""
+    _REQUIRED_EXTRAS = {"atlassian": "bitbucket"}
     
     def __init__(
         self,

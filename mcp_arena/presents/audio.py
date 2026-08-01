@@ -41,6 +41,7 @@ def _ensure_numpy():
 
 class AudioMCPServer(BaseMCPServer):
     """Audio processing MCP server (pydub + librosa)."""
+    _REQUIRED_EXTRAS = {"librosa": "audio", "numpy": "audio", "pydub": "audio"}
 
     def __init__(
         self,
@@ -558,3 +559,4 @@ class AudioMCPServer(BaseMCPServer):
                 }
             except Exception as exc:
                 return {"error": str(exc)}
+
