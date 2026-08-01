@@ -811,11 +811,11 @@ class VideoMCPServer(BaseMCPServer):
 
                 # Apply effects
                 if brightness != 1.0:
-                    clip = clip.fx(vfx.brightness, brightness)
+                    clip = clip.fx(_vfx.brightness, brightness)
                 if contrast != 1.0:
-                    clip = clip.fx(vfx.contrast, contrast)
+                    clip = clip.fx(_vfx.contrast, contrast)
                 if saturation != 1.0:
-                    clip = clip.fx(vfx.saturation, saturation)
+                    clip = clip.fx(_vfx.saturation, saturation)
 
                 clip.write_videofile(
                     output_path,
@@ -862,7 +862,7 @@ class VideoMCPServer(BaseMCPServer):
                         f"{base_name}_blurred.mp4"
                     )
 
-                blurred = clip.fx(vfx.blur, blur_strength)
+                blurred = clip.fx(_vfx.blur, blur_strength)
                 blurred.write_videofile(
                     output_path,
                     codec=self.default_codec,
@@ -905,7 +905,7 @@ class VideoMCPServer(BaseMCPServer):
                         f"{base_name}_bw.mp4"
                     )
 
-                bw_clip = clip.fx(vfx.blackwhite)
+                bw_clip = clip.fx(_vfx.blackwhite)
                 bw_clip.write_videofile(
                     output_path,
                     codec=self.default_codec,

@@ -868,8 +868,10 @@ class ImageMCPServer(BaseMCPServer):
                 if watermark.mode != 'RGBA':
                     watermark = watermark.convert('RGBA')
 
-                alpha = _PIL_Enhance.Brightness(alpha).enhance(opacity)
-                watermark.putalpha(alpha)
+                # Scale the alpha channel by the requested opacity.
+                r, g, b, alpha = watermark.split()
+                alpha = alpha.point(lambda px: int(px * opacity))
+                watermark = watermark.merge((r, g, b, alpha))
 
                 # Calculate position
                 positions = {
