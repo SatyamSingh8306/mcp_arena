@@ -3,130 +3,58 @@ Image Processing MCP Server
 A comprehensive image processing server using Pillow and OpenCV for image
 manipulation, effects, format conversion, and computer vision operations.
 """
-from typing import Optional, Dict, Any, List, Literal, Union, Tuple
-from dataclasses import dataclass, asdict
-from datetime import datetime
-from enum import Enum
-import os
 import io
-import base64
+import os
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Tuple
+
 from mcp_arena.mcp.server import BaseMCPServer
 
-# Lazy imports
-_PIL_Image = None
-_cv2 = None
-_np = None
+try:
+    from PIL import Image as _PIL_Image
+    from PIL import ImageFilter as _PIL_Filter
+    from PIL import ImageEnhance as _PIL_Enhance
+    from PIL import ImageDraw as _PIL_Draw
+    from PIL import ImageFont as _PIL_Font
+    from PIL import ImageOps as _PIL_Ops
+except ImportError:
+    _PIL_Image = _PIL_Filter = _PIL_Enhance = _PIL_Draw = _PIL_Font = _PIL_Ops = None
+
+try:
+    import cv2 as _cv2
+    import numpy as _np
+except ImportError:
+    _cv2 = _np = None
 
 
-def _import_pil():
-    """Lazily import PIL."""
-    global _PIL_Image
+def _ensure_pil():
     if _PIL_Image is None:
-        from PIL import Image, ImageFilter, ImageEnhance, ImageDraw, ImageFont, ImageOps
-        _PIL_Image = Image
-        _PIL_Image.Filter = ImageFilter
-        _PIL_Image.Enhance = ImageEnhance
-        _PIL_Image.Draw = ImageDraw
-        _PIL_Image.Font = ImageFont
-        _PIL_Image.Ops = ImageOps
+        raise ImportError("Pillow is required. pip install Pillow")
     return _PIL_Image
 
 
-def _import_cv2():
-    """Lazily import OpenCV."""
-    global _cv2, _np
+def _ensure_cv2():
     if _cv2 is None:
-        import cv2
-        import numpy as np
-        _cv2 = cv2
-        _np = np
+        raise ImportError("opencv-python is required. pip install opencv-python")
     return _cv2, _np
 
 
-class ImageFormat(str, Enum):
-    """Image format enumeration."""
-    JPEG = "jpeg"
-    PNG = "png"
-    WEBP = "webp"
-    GIF = "gif"
-    BMP = "bmp"
-    TIFF = "tiff"
-    ICO = "ico"
-
-
-class FilterType(str, Enum):
-    """Image filter types."""
-    BLUR = "blur"
-    SHARPEN = "sharpen"
-    EDGE_ENHANCE = "edge_enhance"
-    EMBOSS = "emboss"
-    CONTOUR = "contour"
-    SMOOTH = "smooth"
-    DETAIL = "detail"
-
-
-class ResizeMethod(str, Enum):
-    """Resize methods."""
-    NEAREST = "nearest"
-    BILINEAR = "bilinear"
-    BICUBIC = "bicubic"
-    LANCZOS = "lanczos"
-
-
-@dataclass
-class ImageInfo:
-    """Image file information."""
-    path: str
-    filename: str
-    width: int
-    height: int
-    format: str
-    mode: str
-    size_bytes: int
-    aspect_ratio: float
-    has_transparency: bool
-    dpi: Optional[Tuple[int, int]]
-
-
-@dataclass
-class ColorInfo:
-    """Color information."""
-    dominant_colors: List[Tuple[int, int, int]]
-    average_color: Tuple[int, int, int]
-    brightness: float
-    contrast: float
-
-
 class ImageMCPServer(BaseMCPServer):
-    """Image Processing MCP Server for image manipulation and effects."""
+    """Image processing MCP server (Pillow + OpenCV)."""
 
     def __init__(
         self,
         default_output_dir: Optional[str] = None,
-        default_format: ImageFormat = ImageFormat.PNG,
+        default_format: str = "png",
         default_quality: int = 95,
         temp_dir: Optional[str] = None,
         host: str = "127.0.0.1",
         port: int = 8000,
-        transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
+        transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
         debug: bool = False,
         auto_register_tools: bool = True,
-        **base_kwargs
+        **base_kwargs,
     ):
-        """Initialize Image Processing MCP Server.
-
-        Args:
-            default_output_dir: Default directory for output files
-            default_format: Default output image format
-            default_quality: Default image quality (1-100)
-            temp_dir: Temporary directory for processing
-            host: Host to run MCP server on
-            port: Port to run MCP server on
-            transport: Transport type
-            debug: Enable debug mode
-            auto_register_tools: Automatically register tools
-        """
         self.default_output_dir = default_output_dir or os.path.join(os.getcwd(), "image_output")
         self.default_format = default_format
         self.default_quality = default_quality
@@ -137,13 +65,13 @@ class ImageMCPServer(BaseMCPServer):
 
         super().__init__(
             name="Image Processing MCP Server",
-            description="MCP server for image processing, effects, format conversion, and computer vision using Pillow and OpenCV",
+            description="MCP server for image processing (Pillow + OpenCV)",
             host=host,
             port=port,
             transport=transport,
             debug=debug,
             auto_register_tools=auto_register_tools,
-            **base_kwargs
+            **base_kwargs,
         )
 
     def _register_tools(self) -> None:
@@ -166,25 +94,24 @@ class ImageMCPServer(BaseMCPServer):
                 image_path: Path to the image file
             """
             try:
-                Image = _import_pil()
-                img = Image.open(image_path)
+                Image = _ensure_pil()
+                img = _ensure_pil().open(image_path)
 
-                info = ImageInfo(
-                    path=image_path,
-                    filename=os.path.basename(image_path),
-                    width=img.width,
-                    height=img.height,
-                    format=img.format or "Unknown",
-                    mode=img.mode,
-                    size_bytes=os.path.getsize(image_path),
-                    aspect_ratio=round(img.width / img.height, 2) if img.height > 0 else 0,
-                    has_transparency=img.mode in ('RGBA', 'LA', 'P'),
-                    dpi=img.info.get('dpi')
-                )
+                info = {
+                    "path": image_path,
+                    "filename": os.path.basename(image_path),
+                    "width": img.width,
+                    "height": img.height,
+                    "format": img.format or "Unknown",
+                    "mode": img.mode,
+                    "size_bytes": os.path.getsize(image_path),
+                    "aspect_ratio": round(img.width / img.height, 2) if img.height > 0 else 0,
+                    "has_transparency": img.mode in ("RGBA", "LA", "P"),
+                    "dpi": img.info.get("dpi"),
+                }
 
                 img.close()
-
-                return {"success": True, "info": asdict(info)}
+                return {"success": True, "info": info}
             except Exception as e:
                 return {"error": str(e)}
 
@@ -197,7 +124,7 @@ class ImageMCPServer(BaseMCPServer):
                 num_colors: Number of dominant colors to extract
             """
             try:
-                cv2, np = _import_cv2()
+                cv2, np = _ensure_cv2()
 
                 img = cv2.imread(image_path)
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -249,7 +176,7 @@ class ImageMCPServer(BaseMCPServer):
                 quality: Image quality (1-100)
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
 
                 if output_path is None:
@@ -297,7 +224,7 @@ class ImageMCPServer(BaseMCPServer):
             try:
                 results = []
                 for input_path in input_paths:
-                    result = convert_image.__wrapped__(input_path, output_format, None, quality)
+                    result = convert_image(input_path, output_format, None, quality)
                     results.append(result)
 
                 successful = [r for r in results if r.get("success")]
@@ -338,15 +265,15 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
 
                 resample_methods = {
-                    "nearest": Image.Resampling.NEAREST,
-                    "bilinear": Image.Resampling.BILINEAR,
-                    "bicubic": Image.Resampling.BICUBIC,
-                    "lanczos": Image.Resampling.LANCZOS
+                    "nearest": _PIL_Image.Resampling.NEAREST,
+                    "bilinear": _PIL_Image.Resampling.BILINEAR,
+                    "bicubic": _PIL_Image.Resampling.BICUBIC,
+                    "lanczos": _PIL_Image.Resampling.LANCZOS
                 }
-                resample = resample_methods.get(method, Image.Resampling.LANCZOS)
+                resample = resample_methods.get(method, _PIL_Image.Resampling.LANCZOS)
 
                 img = Image.open(input_path)
                 original_size = img.size
@@ -376,7 +303,7 @@ class ImageMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_resized.{self.default_format.value}"
+                        f"{base_name}_resized.{self.default_format}"
                     )
 
                 resized.save(output_path, quality=self.default_quality)
@@ -410,7 +337,7 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
 
                 cropped = img.crop((left, top, right, bottom))
@@ -419,7 +346,7 @@ class ImageMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_cropped.{self.default_format.value}"
+                        f"{base_name}_cropped.{self.default_format}"
                     )
 
                 cropped.save(output_path, quality=self.default_quality)
@@ -452,7 +379,7 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
 
                 rotated = img.rotate(angle, expand=expand)
@@ -461,7 +388,7 @@ class ImageMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_rotated.{self.default_format.value}"
+                        f"{base_name}_rotated.{self.default_format}"
                     )
 
                 rotated.save(output_path, quality=self.default_quality)
@@ -492,7 +419,7 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
 
                 if direction == "horizontal":
@@ -504,7 +431,7 @@ class ImageMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_flipped.{self.default_format.value}"
+                        f"{base_name}_flipped.{self.default_format}"
                     )
 
                 flipped.save(output_path, quality=self.default_quality)
@@ -536,7 +463,7 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
                 original_size = os.path.getsize(input_path)
 
@@ -593,17 +520,17 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
 
                 # Calculate thumbnail size maintaining aspect ratio
-                img.thumbnail((size, size), Image.Resampling.LANCZOS)
+                img.thumbnail((size, size), _PIL_Image.Resampling.LANCZOS)
 
                 if output_path is None:
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_thumb.{self.default_format.value}"
+                        f"{base_name}_thumb.{self.default_format}"
                     )
 
                 img.save(output_path, quality=self.default_quality)
@@ -637,16 +564,16 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
 
                 filters = {
-                    "blur": Image.Filter.BLUR,
-                    "sharpen": Image.Filter.SHARPEN,
-                    "edge_enhance": Image.Filter.EDGE_ENHANCE,
-                    "emboss": Image.Filter.EMBOSS,
-                    "contour": Image.Filter.CONTOUR,
-                    "smooth": Image.Filter.SMOOTH,
-                    "detail": Image.Filter.DETAIL
+                    "blur": _PIL_Filter.BLUR,
+                    "sharpen": _PIL_Filter.SHARPEN,
+                    "edge_enhance": _PIL_Filter.EDGE_ENHANCE,
+                    "emboss": _PIL_Filter.EMBOSS,
+                    "contour": _PIL_Filter.CONTOUR,
+                    "smooth": _PIL_Filter.SMOOTH,
+                    "detail": _PIL_Filter.DETAIL
                 }
 
                 if filter_type not in filters:
@@ -665,7 +592,7 @@ class ImageMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_{filter_type}.{self.default_format.value}"
+                        f"{base_name}_{filter_type}.{self.default_format}"
                     )
 
                 filtered.save(output_path, quality=self.default_quality)
@@ -699,29 +626,29 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
 
                 # Apply brightness
                 if brightness != 1.0:
-                    enhancer = Image.Enhance.Brightness(img)
+                    enhancer = _PIL_Enhance.Brightness(img)
                     img = enhancer.enhance(brightness)
 
                 # Apply contrast
                 if contrast != 1.0:
-                    enhancer = Image.Enhance.Contrast(img)
+                    enhancer = _PIL_Enhance.Contrast(img)
                     img = enhancer.enhance(contrast)
 
                 # Apply saturation
                 if saturation != 1.0:
-                    enhancer = Image.Enhance.Color(img)
+                    enhancer = _PIL_Enhance.Color(img)
                     img = enhancer.enhance(saturation)
 
                 if output_path is None:
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_adjusted.{self.default_format.value}"
+                        f"{base_name}_adjusted.{self.default_format}"
                     )
 
                 img.save(output_path, quality=self.default_quality)
@@ -745,7 +672,7 @@ class ImageMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Convert image to grayscale."""
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
                 gray = img.convert('L')
 
@@ -753,7 +680,7 @@ class ImageMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_gray.{self.default_format.value}"
+                        f"{base_name}_gray.{self.default_format}"
                     )
 
                 gray.save(output_path, quality=self.default_quality)
@@ -771,25 +698,25 @@ class ImageMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Invert image colors."""
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
 
                 if img.mode == 'RGBA':
                     r, g, b, a = img.split()
                     rgb = Image.merge('RGB', (r, g, b))
-                    inverted = Image.Ops.invert(rgb)
+                    inverted = _PIL_Ops.invert(rgb)
                     r2, g2, b2 = inverted.split()
                     inverted = Image.merge('RGBA', (r2, g2, b2, a))
                 else:
                     if img.mode != 'RGB':
                         img = img.convert('RGB')
-                    inverted = Image.Ops.invert(img)
+                    inverted = _PIL_Ops.invert(img)
 
                 if output_path is None:
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_inverted.{self.default_format.value}"
+                        f"{base_name}_inverted.{self.default_format}"
                     )
 
                 inverted.save(output_path, quality=self.default_quality)
@@ -814,7 +741,7 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                cv2, np = _import_cv2()
+                cv2, np = _ensure_cv2()
 
                 img = cv2.imread(input_path)
                 h, w = img.shape[:2]
@@ -875,18 +802,18 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
 
                 if img.mode != 'RGBA':
                     img = img.convert('RGBA')
 
-                draw = Image.Draw(img)
+                draw = _PIL_Draw.Draw(img)
 
                 try:
-                    font = Image.Font.truetype("arial.ttf", font_size)
-                except:
-                    font = Image.Font.load_default()
+                    font = _PIL_Font.truetype("arial.ttf", font_size)
+                except Exception:
+                    font = _PIL_Font.load_default()
 
                 draw.text(position, text, fill=color, font=font)
 
@@ -894,7 +821,7 @@ class ImageMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_text.{self.default_format.value}"
+                        f"{base_name}_text.{self.default_format}"
                     )
 
                 img.save(output_path, quality=self.default_quality)
@@ -928,21 +855,19 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                Image = _import_pil()
+                Image = _ensure_pil()
                 img = Image.open(input_path)
                 watermark = Image.open(watermark_path)
 
                 # Resize watermark
                 wm_size = (int(img.width * scale), int(img.height * scale))
-                watermark = watermark.resize(wm_size, Image.Resampling.LANCZOS)
+                watermark = watermark.resize(wm_size, _PIL_Image.Resampling.LANCZOS)
 
                 # Apply opacity
                 if watermark.mode != 'RGBA':
                     watermark = watermark.convert('RGBA')
 
-                from PIL import ImageEnhance
-                alpha = watermark.split()[3]
-                alpha = ImageEnhance.Brightness(alpha).enhance(opacity)
+                alpha = _PIL_Enhance.Brightness(alpha).enhance(opacity)
                 watermark.putalpha(alpha)
 
                 # Calculate position
@@ -966,7 +891,7 @@ class ImageMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_watermarked.{self.default_format.value}"
+                        f"{base_name}_watermarked.{self.default_format}"
                     )
 
                 # Convert back to RGB for saving
@@ -1000,7 +925,7 @@ class ImageMCPServer(BaseMCPServer):
                 draw_boxes: Draw bounding boxes around faces
             """
             try:
-                cv2, np = _import_cv2()
+                cv2, np = _ensure_cv2()
 
                 img = cv2.imread(input_path)
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -1051,7 +976,7 @@ class ImageMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                cv2, np = _import_cv2()
+                cv2, np = _ensure_cv2()
 
                 img = cv2.imread(input_path)
                 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -1107,7 +1032,7 @@ class ImageMCPServer(BaseMCPServer):
                 threshold: Background color threshold (0-255)
             """
             try:
-                cv2, np = _import_cv2()
+                cv2, np = _ensure_cv2()
 
                 img = cv2.imread(input_path)
                 img = cv2.cvtColor(img, cv2.COLOR_BGR2BGRA)
@@ -1137,32 +1062,3 @@ class ImageMCPServer(BaseMCPServer):
                 }
             except Exception as e:
                 return {"error": str(e)}
-
-
-def main():
-    """Main entry point."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Image Processing MCP Server")
-    parser.add_argument("--output-dir", type=str, default=None)
-    parser.add_argument("--transport", default="stdio")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--debug", action="store_true")
-
-    args = parser.parse_args()
-
-    server = ImageMCPServer(
-        default_output_dir=args.output_dir,
-        transport=args.transport,
-        host=args.host,
-        port=args.port,
-        debug=args.debug
-    )
-
-    print("Starting Image Processing MCP Server")
-    server.run()
-
-
-if __name__ == "__main__":
-    main()

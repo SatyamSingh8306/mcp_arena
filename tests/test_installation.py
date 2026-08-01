@@ -305,10 +305,6 @@ class TestInstallationIntegrity:
             'mcp_arena.mcp',
             'mcp_arena.mcp.server',
             'mcp_arena.agent',
-            'mcp_arena.agent.react',
-            'mcp_arena.agent.reflection',
-            'mcp_arena.agent.planning',
-            'mcp_arena.agent.router',
             'mcp_arena.presents',
             'mcp_arena.tools',
             'mcp_arena.cli'
@@ -327,7 +323,7 @@ class TestInstallationIntegrity:
         modules_to_test = [
             'mcp_arena',
             'mcp_arena.mcp.server',
-            'mcp_arena.agent.react',
+            'mcp_arena.agent',
             'mcp_arena.presents.github',
             'mcp_arena.tools.base'
         ]

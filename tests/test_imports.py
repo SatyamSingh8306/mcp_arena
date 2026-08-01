@@ -12,17 +12,13 @@ class TestImports:
         """Test core mcp_arena imports."""
         import mcp_arena
         from mcp_arena.mcp.server import BaseMCPServer
-        from mcp_arena.agent.react_agent import ReactAgent
-        from mcp_arena.agent.reflection_agent import ReflectionAgent
-        from mcp_arena.agent.planning_agent import PlanningAgent
-        from mcp_arena.agent.router import AgentRouter
-        
+        from mcp_arena.agent import make_mcp_agent, ToolRegistry, BaseTool
+
         assert mcp_arena.__version__ is not None
         assert BaseMCPServer is not None
-        assert ReactAgent is not None
-        assert ReflectionAgent is not None
-        assert PlanningAgent is not None
-        assert AgentRouter is not None
+        assert make_mcp_agent is not None
+        assert ToolRegistry is not None
+        assert BaseTool is not None
 
     @pytest.mark.parametrize("server_name", [
         "github", "gitlab", "bitbucket", "docker", "postgres", 
@@ -73,10 +69,8 @@ class TestImports:
 
     def test_wrapper_imports(self):
         """Test wrapper modules."""
-        try:
-            importlib.import_module("mcp_arena.wrapper.langchain_wrapper")
-        except ImportError as e:
-            pytest.fail(f"Failed to import langchain wrapper: {e}")
+        from mcp_arena.wrapper import MCPAgentWrapper
+        assert MCPAgentWrapper is not None
 
     def test_cli_import(self):
         """Test CLI module import."""
@@ -171,15 +165,8 @@ class TestModuleStructure:
         for method in required_methods:
             assert hasattr(BaseMCPServer, method), f"BaseMCPServer missing method: {method}"
 
-    def test_agent_base_classes(self):
-        """Test agent base classes have required methods."""
-        from mcp_arena.agent.react_agent import ReactAgent
-        from mcp_arena.agent.reflection_agent import ReflectionAgent
-        
-        agent_classes = [ReactAgent, ReflectionAgent]
-        
-        for agent_class in agent_classes:
-            # Check for common agent methods
-            common_methods = ["__init__", "run", "process"]
-            for method in common_methods:
-                assert hasattr(agent_class, method), f"{agent_class.__name__} missing method: {method}"
+    def test_agent_builder_returns_callable(self):
+        """make_mcp_agent should be a callable factory."""
+        from mcp_arena.agent import make_mcp_agent
+        assert callable(make_mcp_agent)
+        assert callable(make_mcp_agent)

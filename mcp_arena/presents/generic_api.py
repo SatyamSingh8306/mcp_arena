@@ -1,114 +1,40 @@
-from typing import Literal, Annotated, Optional, List, Dict, Any, Union
-from datetime import datetime, date
-from dataclasses import dataclass, asdict, field
-from enum import Enum
-import httpx
 import json
-import yaml
-from urllib.parse import urlparse, urljoin
+from datetime import datetime
+from typing import Any, Dict, List, Literal, Optional
+
+import httpx
+
 from mcp_arena.mcp.server import BaseMCPServer
 
 
-@dataclass
-class APIResponse:
-    """Standard API response structure"""
-    status_code: int
-    headers: Dict[str, str]
-    data: Any
-    url: str
-    method: str
-    timestamp: datetime = field(default_factory=datetime.now)
-    elapsed_ms: Optional[float] = None
-
-
-@dataclass
-class APIConfig:
-    """API configuration for reusable endpoints"""
-    name: str
-    base_url: str
-    default_headers: Dict[str, str] = field(default_factory=dict)
-    default_auth: Optional[Dict[str, Any]] = field(default=None)
-    endpoints: Dict[str, Dict[str, Any]] = field(default_factory=dict)
-    description: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.now)
-
-
-@dataclass
-class SavedRequest:
-    """Saved API request template"""
-    name: str
-    url: str
-    method: str
-    headers: Dict[str, str] = field(default_factory=dict)
-    params: Dict[str, Any] = field(default_factory=dict)
-    data: Optional[Any] = field(default=None)
-    json_data: Optional[Any] = field(default=None)
-    auth: Optional[Dict[str, Any]] = field(default=None)
-    description: Optional[str] = None
-    created_at: datetime = field(default_factory=datetime.now)
-
-
-class HTTPMethod(str, Enum):
-    """HTTP methods"""
-    GET = "GET"
-    POST = "POST"
-    PUT = "PUT"
-    DELETE = "DELETE"
-    PATCH = "PATCH"
-    HEAD = "HEAD"
-    OPTIONS = "OPTIONS"
-
-
-class AuthType(str, Enum):
-    """Authentication types"""
-    BASIC = "basic"
-    BEARER = "bearer"
-    API_KEY = "api_key"
-    OAUTH2 = "oauth2"
-    NONE = "none"
-
-
 class GenericAPIMCPServer(BaseMCPServer):
-    """Generic API MCP Server for making any API call with any structure."""
-    
+    """Generic API MCP Server for making any API call."""
+
     def __init__(
         self,
         default_timeout: int = 30,
         default_verify_ssl: bool = True,
         host: str = "127.0.0.1",
         port: int = 8000,
-        transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
+        transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
         debug: bool = False,
         auto_register_tools: bool = True,
-        **base_kwargs
+        **base_kwargs,
     ):
-        """Initialize Generic API MCP Server.
-        
-        Args:
-            default_timeout: Default timeout for API requests in seconds
-            default_verify_ssl: Default SSL verification setting
-            host: Host to run server on
-            port: Port to run server on
-            transport: Transport type
-            debug: Enable debug mode
-            auto_register_tools: Automatically register tools on initialization
-            **base_kwargs: Additional arguments for BaseMCPServer
-        """
         self.default_timeout = default_timeout
         self.default_verify_ssl = default_verify_ssl
-        self.api_configs: Dict[str, APIConfig] = {}
-        self.saved_requests: Dict[str, SavedRequest] = {}
-        
-        # Initialize base class
+        self.api_configs: Dict[str, Dict[str, Any]] = {}
+        self.saved_requests: Dict[str, Dict[str, Any]] = {}
+
         super().__init__(
             name="Generic API MCP Server",
-            description="MCP server for making any API call with any structure",
+            description="MCP server for making any API call",
             host=host,
             port=port,
             transport=transport,
             debug=debug,
             auto_register_tools=auto_register_tools,
-            **base_kwargs
+            **base_kwargs,
         )
     
     def _register_tools(self) -> None:
@@ -123,7 +49,7 @@ class GenericAPIMCPServer(BaseMCPServer):
         @self.mcp_server.tool()
         def make_api_request(
             url: str,
-            method: HTTPMethod = HTTPMethod.GET,
+            method: str = "GET",
             headers: Optional[Dict[str, str]] = None,
             params: Optional[Dict[str, Any]] = None,
             data: Optional[Any] = None,
@@ -165,8 +91,8 @@ class GenericAPIMCPServer(BaseMCPServer):
         def test_endpoint(
             url: str,
             expected_status: Optional[int] = None,
-            method: HTTPMethod = HTTPMethod.GET,
-            timeout: int = 10
+            method: str = "GET",
+            timeout: int = 10,
         ) -> Dict[str, Any]:
             """
             Test if an API endpoint is reachable and responding.
@@ -212,30 +138,27 @@ class GenericAPIMCPServer(BaseMCPServer):
                 Registration status and configuration details
             """
             try:
-                config = APIConfig(
-                    name=name,
-                    base_url=base_url.rstrip("/"),
-                    default_headers=default_headers or {},
-                    default_auth=default_auth,
-                    description=description
-                )
-                
-                self.api_configs[name] = config
-                
+                self.api_configs[name] = {
+                    "name": name,
+                    "base_url": base_url.rstrip("/"),
+                    "default_headers": default_headers or {},
+                    "default_auth": default_auth,
+                    "description": description,
+                    "created_at": datetime.now().isoformat(),
+                }
                 return {
                     "status": "success",
-                    "message": f"API '{name}' registered successfully",
-                    "config": asdict(config)
+                    "message": f"API '{name}' registered",
+                    "config": self.api_configs[name],
                 }
-                
-            except Exception as e:
-                return {"error": f"Failed to register API: {str(e)}"}
+            except Exception as exc:
+                return {"error": f"Failed to register API: {exc}"}
         
         @self.mcp_server.tool()
         def call_registered_api(
             api_name: str,
             endpoint: str,
-            method: HTTPMethod = HTTPMethod.GET,
+            method: str = "GET",
             headers: Optional[Dict[str, str]] = None,
             params: Optional[Dict[str, Any]] = None,
             data: Optional[Any] = None,
@@ -299,11 +222,11 @@ class GenericAPIMCPServer(BaseMCPServer):
             apis = {}
             for name, config in self.api_configs.items():
                 apis[name] = {
-                    "base_url": config.base_url,
-                    "description": config.description,
-                    "default_headers_count": len(config.default_headers),
-                    "has_auth": config.default_auth is not None,
-                    "created_at": config.created_at.isoformat()
+                    "base_url": config["base_url"],
+                    "description": config["description"],
+                    "default_headers_count": len(config["default_headers"]),
+                    "has_auth": config["default_auth"] is not None,
+                    "created_at": config["created_at"],
                 }
             
             return {"apis": apis}
@@ -332,7 +255,7 @@ class GenericAPIMCPServer(BaseMCPServer):
         def save_request(
             name: str,
             url: str,
-            method: HTTPMethod = HTTPMethod.GET,
+            method: str = "GET",
             headers: Optional[Dict[str, str]] = None,
             params: Optional[Dict[str, Any]] = None,
             data: Optional[Any] = None,
@@ -358,24 +281,22 @@ class GenericAPIMCPServer(BaseMCPServer):
                 Saved request information
             """
             try:
-                saved_request = SavedRequest(
-                    name=name,
-                    url=url,
-                    method=method,
-                    headers=headers or {},
-                    params=params or {},
-                    data=data,
-                    json_data=json_data,
-                    auth=auth,
-                    description=description
-                )
-                
-                self.saved_requests[name] = saved_request
-                
+                self.saved_requests[name] = {
+                    "name": name,
+                    "url": url,
+                    "method": method,
+                    "headers": headers or {},
+                    "params": params or {},
+                    "data": data,
+                    "json_data": json_data,
+                    "auth": auth,
+                    "description": description,
+                    "created_at": datetime.now().isoformat(),
+                }
                 return {
                     "status": "success",
-                    "message": f"Request '{name}' saved successfully",
-                    "request": asdict(saved_request)
+                    "message": f"Request '{name}' saved",
+                    "request": self.saved_requests[name],
                 }
                 
             except Exception as e:
@@ -410,54 +331,40 @@ class GenericAPIMCPServer(BaseMCPServer):
                 
                 template = self.saved_requests[name]
                 variables = variables or {}
-                
-                # Substitute variables in URL
-                url = template.url
+
+                url = template["url"]
                 for key, value in variables.items():
                     placeholder = f"{{{key}}}"
                     if placeholder in url:
                         url = url.replace(placeholder, str(value))
-                
-                # Prepare headers
-                headers = template.headers.copy()
-                if override_headers:
-                    headers.update(override_headers)
-                
-                # Prepare params
-                params = template.params.copy()
-                if override_params:
-                    params.update(override_params)
-                
-                # Substitute variables in params
+
+                headers = {**template["headers"], **(override_headers or {})}
+                params = {**template["params"], **(override_params or {})}
                 for key, value in params.items():
                     if isinstance(value, str) and value.startswith("{") and value.endswith("}"):
                         var_name = value[1:-1]
                         if var_name in variables:
                             params[key] = variables[var_name]
-                
-                # Prepare JSON data with variable substitution
-                json_data = template.json_data
+
+                json_data = template["json_data"]
                 if json_data is not None:
                     json_data = self._substitute_variables(json_data, variables)
                     if override_json is not None:
-                        # Deep merge override JSON
                         if isinstance(json_data, dict) and isinstance(override_json, dict):
                             json_data = {**json_data, **override_json}
                         else:
                             json_data = override_json
-                
-                # Prepare form/data
-                data = override_data if override_data is not None else template.data
-                
-                # Make the request
+
+                data = override_data if override_data is not None else template["data"]
+
                 return self._make_api_request_impl(
                     url=url,
-                    method=template.method,
+                    method=template["method"],
                     headers=headers,
                     params=params,
                     data=data,
                     json_data=json_data,
-                    auth=template.auth
+                    auth=template["auth"],
                 )
                 
             except Exception as e:
@@ -469,11 +376,11 @@ class GenericAPIMCPServer(BaseMCPServer):
             requests = {}
             for name, req in self.saved_requests.items():
                 requests[name] = {
-                    "url": req.url,
-                    "method": req.method,
-                    "description": req.description,
-                    "has_auth": req.auth is not None,
-                    "created_at": req.created_at.isoformat()
+                    "url": req["url"],
+                    "method": req["method"],
+                    "description": req["description"],
+                    "has_auth": req["auth"] is not None,
+                    "created_at": req["created_at"],
                 }
             
             return {"saved_requests": requests}
@@ -481,7 +388,7 @@ class GenericAPIMCPServer(BaseMCPServer):
     def _make_api_request_impl(
         self,
         url: str,
-        method: HTTPMethod = HTTPMethod.GET,
+        method: str = "GET",
         headers: Optional[Dict[str, str]] = None,
         params: Optional[Dict[str, Any]] = None,
         data: Optional[Any] = None,
@@ -503,7 +410,7 @@ class GenericAPIMCPServer(BaseMCPServer):
             auth_obj = self._prepare_auth(auth) if auth else None
             
             # Handle API key auth in headers
-            if auth and auth.get("type") == AuthType.API_KEY:
+            if auth and auth.get("type") == "api_key":
                 api_key_name = auth.get("name", "X-API-Key")
                 api_key_value = auth.get("key", "")
                 api_key_location = auth.get("location", "header")
@@ -528,31 +435,31 @@ class GenericAPIMCPServer(BaseMCPServer):
             # Make request
             start_time = datetime.now()
             with httpx.Client() as client:
-                if method == HTTPMethod.GET:
+                if method == "GET":
                     response = client.get(url, **request_kwargs)
-                elif method == HTTPMethod.POST:
+                elif method == "POST":
                     if json_data is not None:
                         request_kwargs["json"] = json_data
                     elif data is not None:
                         request_kwargs["data"] = self._serialize_data(data)
                     response = client.post(url, **request_kwargs)
-                elif method == HTTPMethod.PUT:
+                elif method == "PUT":
                     if json_data is not None:
                         request_kwargs["json"] = json_data
                     elif data is not None:
                         request_kwargs["data"] = self._serialize_data(data)
                     response = client.put(url, **request_kwargs)
-                elif method == HTTPMethod.DELETE:
+                elif method == "DELETE":
                     response = client.delete(url, **request_kwargs)
-                elif method == HTTPMethod.PATCH:
+                elif method == "PATCH":
                     if json_data is not None:
                         request_kwargs["json"] = json_data
                     elif data is not None:
                         request_kwargs["data"] = self._serialize_data(data)
                     response = client.patch(url, **request_kwargs)
-                elif method == HTTPMethod.HEAD:
+                elif method == "HEAD":
                     response = client.head(url, **request_kwargs)
-                elif method == HTTPMethod.OPTIONS:
+                elif method == "OPTIONS":
                     response = client.options(url, **request_kwargs)
                 else:
                     return {"error": f"Unsupported HTTP method: {method}"}
@@ -563,32 +470,30 @@ class GenericAPIMCPServer(BaseMCPServer):
             # Parse response
             try:
                 response_data = response.json()
-            except:
+            except Exception:
                 response_data = response.text
-            
-            # Create response object
-            api_response = APIResponse(
-                status_code=response.status_code,
-                headers=dict(response.headers),
-                data=response_data,
-                url=str(response.url),
-                method=method,
-                elapsed_ms=elapsed_ms
-            )
-            
-            return asdict(api_response)
-            
-        except httpx.RequestError as e:
-            return {"error": f"Request failed: {str(e)}"}
-        except Exception as e:
-            return {"error": f"Unexpected error: {str(e)}"}
-    
+
+            return {
+                "status_code": response.status_code,
+                "headers": dict(response.headers),
+                "data": response_data,
+                "url": str(response.url),
+                "method": method,
+                "elapsed_ms": elapsed_ms,
+                "timestamp": datetime.now().isoformat(),
+            }
+
+        except httpx.RequestError as exc:
+            return {"error": f"Request failed: {exc}"}
+        except Exception as exc:
+            return {"error": f"Unexpected error: {exc}"}
+
     def _test_endpoint_impl(
         self,
         url: str,
         expected_status: Optional[int] = None,
-        method: HTTPMethod = HTTPMethod.GET,
-        timeout: int = 10
+        method: str = "GET",
+        timeout: int = 10,
     ) -> Dict[str, Any]:
         """Implementation of test_endpoint."""
         try:
@@ -634,20 +539,19 @@ class GenericAPIMCPServer(BaseMCPServer):
         
         auth_type = auth_config.get("type", "none")
         
-        if auth_type == AuthType.BASIC:
+        if auth_type == "basic":
             return httpx.BasicAuth(
                 username=auth_config.get("username", ""),
                 password=auth_config.get("password", "")
             )
-        elif auth_type == AuthType.BEARER:
+        elif auth_type == "bearer":
             token = auth_config.get("token", "")
             if token.startswith("Bearer "):
                 token = token[7:]
             return httpx.BearerToken(token=token)
-        elif auth_type == AuthType.API_KEY:
-            # API key auth is handled in _make_api_request_impl
+        elif auth_type == "api_key":
             return None
-        elif auth_type == AuthType.OAUTH2:
+        elif auth_type == "oauth2":
             # For OAuth2, we expect a bearer token
             token = auth_config.get("access_token", "")
             return httpx.BearerToken(token=token)

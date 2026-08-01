@@ -1,99 +1,73 @@
-"""
-Audio Processing MCP Server
-A comprehensive audio processing server using Pydub and Librosa for audio
-manipulation, effects, conversion, and analysis.
-"""
-from typing import Optional, Dict, Any, List, Literal, Union
-from dataclasses import dataclass, asdict
-from datetime import datetime
-from enum import Enum
+"""Audio processing MCP server: info, conversion, editing, effects, analysis."""
 import os
-import subprocess
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional
+
 from mcp_arena.mcp.server import BaseMCPServer
 
-# Lazy imports
-_pydub = None
-_librosa = None
+try:
+    from pydub import AudioSegment as _AudioSegment
+except ImportError:
+    _AudioSegment = None
+
+try:
+    import librosa as _librosa
+except ImportError:
+    _librosa = None
+
+try:
+    import numpy as _np
+except ImportError:
+    _np = None
 
 
-def _import_pydub():
-    """Lazily import pydub."""
-    global _pydub
-    if _pydub is None:
-        from pydub import AudioSegment
-        _pydub = AudioSegment
-    return _pydub
+def _ensure_pydub():
+    if _AudioSegment is None:
+        raise ImportError("pydub is required. pip install pydub")
+    return _AudioSegment
 
 
-def _import_librosa():
-    """Lazily import librosa."""
-    global _librosa
+def _ensure_librosa():
     if _librosa is None:
-        import librosa
-        _librosa = librosa
+        raise ImportError("librosa is required. pip install librosa")
     return _librosa
 
 
-class AudioFormat(str, Enum):
-    """Audio format enumeration."""
-    MP3 = "mp3"
-    WAV = "wav"
-    AAC = "aac"
-    OGG = "ogg"
-    FLAC = "flac"
-    M4A = "m4a"
-    WMA = "wma"
-
-
-@dataclass
-class AudioInfo:
-    """Audio file information."""
-    path: str
-    filename: str
-    duration_seconds: float
-    channels: int
-    sample_rate: int
-    sample_width: int
-    frame_count: int
-    format: str
-    size_bytes: int
-    bitrate: Optional[int]
+def _ensure_numpy():
+    if _np is None:
+        raise ImportError("numpy is required. pip install numpy")
+    return _np
 
 
 class AudioMCPServer(BaseMCPServer):
-    """Audio Processing MCP Server for audio manipulation and effects."""
+    """Audio processing MCP server (pydub + librosa)."""
 
     def __init__(
         self,
         default_output_dir: Optional[str] = None,
-        default_format: AudioFormat = AudioFormat.MP3,
+        default_format: str = "mp3",
         default_bitrate: str = "192k",
-        ffmpeg_path: Optional[str] = None,
         host: str = "127.0.0.1",
         port: int = 8000,
-        transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
+        transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
         debug: bool = False,
         auto_register_tools: bool = True,
-        **base_kwargs
+        **base_kwargs,
     ):
-        """Initialize Audio Processing MCP Server."""
         self.default_output_dir = default_output_dir or os.path.join(os.getcwd(), "audio_output")
         self.default_format = default_format
         self.default_bitrate = default_bitrate
-        self.ffmpeg_path = ffmpeg_path
-
         Path(self.default_output_dir).mkdir(parents=True, exist_ok=True)
 
         super().__init__(
             name="Audio Processing MCP Server",
-            description="MCP server for audio processing, effects, conversion, and analysis using Pydub and Librosa",
+            description="MCP server for audio processing (pydub + librosa)",
             host=host,
             port=port,
             transport=transport,
             debug=debug,
             auto_register_tools=auto_register_tools,
-            **base_kwargs
+            **base_kwargs,
         )
 
     def _register_tools(self) -> None:
@@ -111,42 +85,34 @@ class AudioMCPServer(BaseMCPServer):
         def get_audio_info(audio_path: str) -> Dict[str, Any]:
             """Get detailed information about an audio file."""
             try:
-                AudioSegment = _import_pydub()
-                audio = AudioSegment.from_file(audio_path)
-
-                info = AudioInfo(
-                    path=audio_path,
-                    filename=os.path.basename(audio_path),
-                    duration_seconds=len(audio) / 1000.0,
-                    channels=audio.channels,
-                    sample_rate=audio.frame_rate,
-                    sample_width=audio.sample_width,
-                    frame_count=audio.frame_count(),
-                    format=os.path.splitext(audio_path)[1][1:],
-                    size_bytes=os.path.getsize(audio_path),
-                    bitrate=None
-                )
-
-                return {"success": True, "info": asdict(info)}
-            except Exception as e:
-                return {"error": str(e)}
+                audio = _ensure_pydub().from_file(audio_path)
+                return {
+                    "success": True,
+                    "info": {
+                        "path": audio_path,
+                        "filename": os.path.basename(audio_path),
+                        "duration_seconds": len(audio) / 1000.0,
+                        "channels": audio.channels,
+                        "sample_rate": audio.frame_rate,
+                        "sample_width": audio.sample_width,
+                        "frame_count": audio.frame_count(),
+                        "format": os.path.splitext(audio_path)[1][1:],
+                        "size_bytes": os.path.getsize(audio_path),
+                    },
+                }
+            except Exception as exc:
+                return {"error": str(exc)}
 
         @self.mcp_server.tool()
         def analyze_audio(audio_path: str) -> Dict[str, Any]:
             """Analyze audio characteristics using librosa."""
             try:
-                librosa = _import_librosa()
+                librosa = _ensure_librosa()
                 y, sr = librosa.load(audio_path, sr=None)
-
-                # Basic analysis
                 duration = len(y) / sr
                 tempo, _ = librosa.beat.beat_track(y=y, sr=sr)
-
-                # Spectral features
                 spectral_centroid = librosa.feature.spectral_centroid(y=y, sr=sr).mean()
                 spectral_rolloff = librosa.feature.spectral_rolloff(y=y, sr=sr).mean()
-
-                # RMS energy
                 rms = librosa.feature.rms(y=y).mean()
 
                 return {
@@ -156,10 +122,10 @@ class AudioMCPServer(BaseMCPServer):
                     "tempo_bpm": round(float(tempo), 1),
                     "spectral_centroid_hz": round(float(spectral_centroid), 1),
                     "spectral_rolloff_hz": round(float(spectral_rolloff), 1),
-                    "rms_energy": round(float(rms), 4)
+                    "rms_energy": round(float(rms), 4),
                 }
-            except Exception as e:
-                return {"error": str(e)}
+            except Exception as exc:
+                return {"error": str(exc)}
 
     def _register_conversion_tools(self):
         """Register audio conversion tools."""
@@ -174,7 +140,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Convert audio to a different format."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 if output_path is None:
@@ -208,7 +174,7 @@ class AudioMCPServer(BaseMCPServer):
             """Convert multiple audio files."""
             results = []
             for path in input_paths:
-                result = convert_audio.__wrapped__(path, output_format, None, bitrate)
+                result = convert_audio(path, output_format, None, bitrate)
                 results.append(result)
             return {
                 "success": True,
@@ -229,7 +195,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Trim audio to specified time range."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 start_ms = int(start_time * 1000)
@@ -241,10 +207,10 @@ class AudioMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_trimmed.{self.default_format.value}"
+                        f"{base_name}_trimmed.{self.default_format}"
                     )
 
-                trimmed.export(output_path, format=self.default_format.value)
+                trimmed.export(output_path, format=self.default_format)
 
                 return {
                     "success": True,
@@ -264,7 +230,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Concatenate multiple audio files."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
 
                 segments = [AudioSegment.from_file(path) for path in audio_paths]
 
@@ -278,10 +244,10 @@ class AudioMCPServer(BaseMCPServer):
                 if output_path is None:
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"concatenated.{self.default_format.value}"
+                        f"concatenated.{self.default_format}"
                     )
 
-                combined.export(output_path, format=self.default_format.value)
+                combined.export(output_path, format=self.default_format)
 
                 return {
                     "success": True,
@@ -300,7 +266,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Split audio into segments."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 if output_dir is None:
@@ -314,9 +280,9 @@ class AudioMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         output_dir,
-                        f"{base_name}_segment_{i+1}.{self.default_format.value}"
+                        f"{base_name}_segment_{i+1}.{self.default_format}"
                     )
-                    segment.export(output_path, format=self.default_format.value)
+                    segment.export(output_path, format=self.default_format)
                     output_files.append(output_path)
 
                 return {
@@ -335,7 +301,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Change audio volume (dB)."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 adjusted = audio + volume_change
@@ -344,10 +310,10 @@ class AudioMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_volume.{self.default_format.value}"
+                        f"{base_name}_volume.{self.default_format}"
                     )
 
-                adjusted.export(output_path, format=self.default_format.value)
+                adjusted.export(output_path, format=self.default_format)
 
                 return {
                     "success": True,
@@ -365,7 +331,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Normalize audio to target dBFS."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 change_in_dBFS = target_dBFS - audio.dBFS
@@ -375,10 +341,10 @@ class AudioMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_normalized.{self.default_format.value}"
+                        f"{base_name}_normalized.{self.default_format}"
                     )
 
-                normalized.export(output_path, format=self.default_format.value)
+                normalized.export(output_path, format=self.default_format)
 
                 return {
                     "success": True,
@@ -400,7 +366,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Add fade in/out effects to audio."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 if fade_in > 0:
@@ -412,10 +378,10 @@ class AudioMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_fade.{self.default_format.value}"
+                        f"{base_name}_fade.{self.default_format}"
                     )
 
-                audio.export(output_path, format=self.default_format.value)
+                audio.export(output_path, format=self.default_format)
 
                 return {
                     "success": True,
@@ -434,7 +400,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Change audio playback speed."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 # Change speed by adjusting frame rate
@@ -448,10 +414,10 @@ class AudioMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_speed.{self.default_format.value}"
+                        f"{base_name}_speed.{self.default_format}"
                     )
 
-                sped_up.export(output_path, format=self.default_format.value)
+                sped_up.export(output_path, format=self.default_format)
 
                 return {
                     "success": True,
@@ -471,7 +437,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Add echo effect to audio."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 # Create delayed copy
@@ -486,10 +452,10 @@ class AudioMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_echo.{self.default_format.value}"
+                        f"{base_name}_echo.{self.default_format}"
                     )
 
-                result.export(output_path, format=self.default_format.value)
+                result.export(output_path, format=self.default_format)
 
                 return {
                     "success": True,
@@ -507,7 +473,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Reverse audio playback."""
             try:
-                AudioSegment = _import_pydub()
+                AudioSegment = _ensure_pydub()
                 audio = AudioSegment.from_file(input_path)
 
                 reversed_audio = audio.reverse()
@@ -516,10 +482,10 @@ class AudioMCPServer(BaseMCPServer):
                     base_name = os.path.splitext(os.path.basename(input_path))[0]
                     output_path = os.path.join(
                         self.default_output_dir,
-                        f"{base_name}_reversed.{self.default_format.value}"
+                        f"{base_name}_reversed.{self.default_format}"
                     )
 
-                reversed_audio.export(output_path, format=self.default_format.value)
+                reversed_audio.export(output_path, format=self.default_format)
 
                 return {
                     "success": True,
@@ -538,7 +504,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Detect beats in audio."""
             try:
-                librosa = _import_librosa()
+                librosa = _ensure_librosa()
                 y, sr = librosa.load(audio_path, sr=None)
 
                 tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
@@ -560,7 +526,7 @@ class AudioMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Extract MFCC features from audio."""
             try:
-                librosa = _import_librosa()
+                librosa = _ensure_librosa()
                 y, sr = librosa.load(audio_path, sr=None)
 
                 mfccs = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)
@@ -575,56 +541,20 @@ class AudioMCPServer(BaseMCPServer):
                 return {"error": str(e)}
 
         @self.mcp_server.tool()
-        def get_spectrogram(
-            audio_path: str,
-            output_path: Optional[str] = None
-        ) -> Dict[str, Any]:
+        def get_spectrogram(audio_path: str, output_path: Optional[str] = None) -> Dict[str, Any]:
             """Generate spectrogram data for audio."""
             try:
-                librosa = _import_librosa()
-                import numpy as np
-
+                librosa = _ensure_librosa()
+                np = _ensure_numpy()
                 y, sr = librosa.load(audio_path, sr=None)
-
-                # Generate spectrogram
                 D = librosa.stft(y)
                 S_db = librosa.amplitude_to_db(np.abs(D), ref=np.max)
-
                 return {
                     "success": True,
                     "sample_rate": sr,
                     "spectrogram_shape": list(S_db.shape),
                     "frequency_bins": S_db.shape[0],
-                    "time_frames": S_db.shape[1]
+                    "time_frames": S_db.shape[1],
                 }
-            except Exception as e:
-                return {"error": str(e)}
-
-
-def main():
-    """Main entry point."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Audio Processing MCP Server")
-    parser.add_argument("--output-dir", type=str, default=None)
-    parser.add_argument("--transport", default="stdio")
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--debug", action="store_true")
-
-    args = parser.parse_args()
-
-    server = AudioMCPServer(
-        default_output_dir=args.output_dir,
-        transport=args.transport,
-        host=args.host,
-        port=args.port,
-        debug=args.debug
-    )
-
-    print("Starting Audio Processing MCP Server")
-    server.run()
-
-
-if __name__ == "__main__":
-    main()
+            except Exception as exc:
+                return {"error": str(exc)}

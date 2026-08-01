@@ -1,27 +1,18 @@
-from mcp.server.fastmcp import FastMCP
-from typing import Literal, Annotated, Optional, List, Dict, Any, Union
-from datetime import datetime, date
-from dataclasses import dataclass, asdict, field
-from enum import Enum
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
+"""SMTP MCP server: send email via arbitrary SMTP server."""
 import base64
+import smtplib
+from email import encoders
+from email.mime.base import MIMEBase
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from typing import Any, Dict, List, Literal, Optional
+
 from mcp_arena.mcp.server import BaseMCPServer
 
-class SMTPConfig:
-    host: str
-    port: int
-    username: str
-    password: str
-    use_tls: bool
-    use_ssl: bool
 
 class SMTPServer(BaseMCPServer):
-    """SMTP MCP Server for sending emails via SMTP protocol."""
-    
+    """SMTP MCP server."""
+
     def __init__(
         self,
         smtp_host: str,
@@ -32,37 +23,18 @@ class SMTPServer(BaseMCPServer):
         use_ssl: bool = False,
         host: str = "127.0.0.1",
         port: int = 8000,
-        transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
+        transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
         debug: bool = False,
         auto_register_tools: bool = True,
-        **base_kwargs
+        **base_kwargs,
     ):
-        """Initialize SMTP MCP Server.
-        
-        Args:
-            smtp_host: SMTP server hostname
-            smtp_port: SMTP server port
-            username: SMTP username
-            password: SMTP password
-            use_tls: Use TLS encryption
-            use_ssl: Use SSL encryption
-            host: Host to run server on
-            port: Port to run server on
-            transport: Transport type
-            debug: Enable debug mode
-            auto_register_tools: Automatically register tools on initialization
-            **base_kwargs: Additional arguments for BaseMCPServer
-        """
-        self.smtp_config = SMTPConfig(
-            host=smtp_host,
-            port=smtp_port,
-            username=username,
-            password=password,
-            use_tls=use_tls,
-            use_ssl=use_ssl
-        )
-        
-        # Initialize base class
+        self.smtp_host = smtp_host
+        self.smtp_port = smtp_port
+        self.username = username
+        self.password = password
+        self.use_tls = use_tls
+        self.use_ssl = use_ssl
+
         super().__init__(
             name="SMTP MCP Server",
             description="MCP server for SMTP email operations",
@@ -71,29 +43,19 @@ class SMTPServer(BaseMCPServer):
             transport=transport,
             debug=debug,
             auto_register_tools=auto_register_tools,
-            **base_kwargs
+            **base_kwargs,
         )
-    
-    def _get_smtp_connection(self) -> smtplib.SMTP:
-        """Create and return an SMTP connection."""
-        if self.smtp_config.use_ssl:
-            server = smtplib.SMTP_SSL(self.smtp_config.host, self.smtp_config.port)
-        else:
-            server = smtplib.SMTP(self.smtp_config.host, self.smtp_config.port)
-        
-        if self.smtp_config.use_tls and not self.smtp_config.use_ssl:
+
+    def _connect(self) -> smtplib.SMTP:
+        server = smtplib.SMTP_SSL(self.smtp_host, self.smtp_port) if self.use_ssl \
+            else smtplib.SMTP(self.smtp_host, self.smtp_port)
+        if self.use_tls and not self.use_ssl:
             server.starttls()
-        
-        if self.smtp_config.username and self.smtp_config.password:
-            server.login(self.smtp_config.username, self.smtp_config.password)
-        
+        if self.username and self.password:
+            server.login(self.username, self.password)
         return server
-    
+
     def _register_tools(self) -> None:
-        """Register all SMTP-related tools."""
-        self._register_email_tools()
-    
-    def _register_email_tools(self):
         @self.mcp_server.tool()
         def send_email(
             from_addr: str,
@@ -103,72 +65,54 @@ class SMTPServer(BaseMCPServer):
             cc_addrs: Optional[List[str]] = None,
             bcc_addrs: Optional[List[str]] = None,
             attachments: Optional[List[Dict[str, Any]]] = None,
-            html_body: Optional[str] = None
+            html_body: Optional[str] = None,
         ) -> Dict[str, Any]:
             """Send an email via SMTP."""
-            # Create message
+            msg = MIMEMultipart("alternative" if html_body else "mixed")
             if html_body:
-                msg = MIMEMultipart('alternative')
-                msg.attach(MIMEText(body, 'plain'))
-                msg.attach(MIMEText(html_body, 'html'))
+                msg.attach(MIMEText(body, "plain"))
+                msg.attach(MIMEText(html_body, "html"))
             else:
-                msg = MIMEMultipart()
-                msg.attach(MIMEText(body, 'plain'))
-            
-            msg['From'] = from_addr
-            msg['To'] = ', '.join(to_addrs)
-            msg['Subject'] = subject
-            
+                msg.attach(MIMEText(body, "plain"))
+            msg["From"] = from_addr
+            msg["To"] = ", ".join(to_addrs)
+            msg["Subject"] = subject
             if cc_addrs:
-                msg['Cc'] = ', '.join(cc_addrs)
-            
-            # Add attachments
+                msg["Cc"] = ", ".join(cc_addrs)
+
             if attachments:
                 for attachment in attachments:
-                    part = MIMEBase('application', 'octet-stream')
-                    part.set_payload(base64.b64decode(attachment['data']))
+                    part = MIMEBase("application", "octet-stream")
+                    part.set_payload(base64.b64decode(attachment["data"]))
                     encoders.encode_base64(part)
                     part.add_header(
-                        'Content-Disposition',
-                        f'attachment; filename={attachment["filename"]}'
+                        "Content-Disposition",
+                        f'attachment; filename={attachment["filename"]}',
                     )
                     msg.attach(part)
-            
-            # Send email
-            all_recipients = to_addrs.copy()
+
+            all_recipients = list(to_addrs)
             if cc_addrs:
                 all_recipients.extend(cc_addrs)
             if bcc_addrs:
                 all_recipients.extend(bcc_addrs)
-            
+
             try:
-                server = self._get_smtp_connection()
-                server.sendmail(from_addr, all_recipients, msg.as_string())
-                server.quit()
-                
-                return {
-                    "status": "success",
-                    "sent_to": all_recipients,
-                    "message": "Email sent successfully"
-                }
-            except Exception as e:
-                return {
-                    "status": "error",
-                    "error": str(e)
-                }
-        
+                server = self._connect()
+                try:
+                    server.sendmail(from_addr, all_recipients, msg.as_string())
+                finally:
+                    server.quit()
+                return {"status": "success", "sent_to": all_recipients, "message": "Email sent successfully"}
+            except Exception as exc:
+                return {"status": "error", "error": str(exc)}
+
         @self.mcp_server.tool()
         def test_connection() -> Dict[str, Any]:
             """Test SMTP server connection."""
             try:
-                server = self._get_smtp_connection()
+                server = self._connect()
                 server.quit()
-                return {
-                    "status": "success",
-                    "message": "SMTP connection successful"
-                }
-            except Exception as e:
-                return {
-                    "status": "error",
-                    "error": str(e)
-                }
+                return {"status": "success", "message": "SMTP connection successful"}
+            except Exception as exc:
+                return {"status": "error", "error": str(exc)}

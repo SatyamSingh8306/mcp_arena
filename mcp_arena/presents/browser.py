@@ -3,27 +3,29 @@ Browser Automation MCP Server
 A comprehensive browser automation server using Playwright for web automation,
 scraping, testing, and more.
 """
-from typing import Optional, Dict, Any, List, Literal, Union
-from dataclasses import dataclass, asdict
-from datetime import datetime
-from enum import Enum
 import os
 import asyncio
 import json
 import base64
 import uuid
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, TypedDict
+
 from mcp_arena.mcp.server import BaseMCPServer
 
+try:
+    from playwright.async_api import async_playwright as _async_playwright
+except ImportError:
+    _async_playwright = None
 
-class BrowserType(str, Enum):
-    CHROMIUM = "chromium"
-    FIREFOX = "firefox"
-    WEBKIT = "webkit"
+
+def _ensure_playwright():
+    if _async_playwright is None:
+        raise ImportError("playwright is required. pip install playwright && playwright install")
+    return _async_playwright
 
 
-@dataclass
-class BrowserSession:
+class BrowserSession(TypedDict, total=False):
     session_id: str
     browser_type: str
     headless: bool
@@ -31,10 +33,10 @@ class BrowserSession:
     viewport_height: int
     user_agent: Optional[str]
     created_at: str
-    current_url: Optional[str] = None
-    current_title: Optional[str] = None
-    pages_count: int = 1
-    is_active: bool = True
+    current_url: Optional[str]
+    current_title: Optional[str]
+    pages_count: int
+    is_active: bool
 
 
 class BrowserMCPServer(BaseMCPServer):
@@ -46,7 +48,7 @@ class BrowserMCPServer(BaseMCPServer):
 
     def __init__(
         self,
-        browser_type: BrowserType = BrowserType.CHROMIUM,
+        browser_type: str = "chromium",
         headless: bool = True,
         viewport_width: int = 1920,
         viewport_height: int = 1080,
@@ -94,8 +96,8 @@ class BrowserMCPServer(BaseMCPServer):
     async def _ensure_playwright(self):
         """Start the async playwright process exactly once."""
         if self._pw is None:
-            from playwright.async_api import async_playwright
-            self.__class__._pw_cm = async_playwright()
+            playwright = _ensure_playwright()
+            self.__class__._pw_cm = playwright()
             self.__class__._pw = await self.__class__._pw_cm.__aenter__()
         return self._pw
 
@@ -110,13 +112,13 @@ class BrowserMCPServer(BaseMCPServer):
         """Create a new browser session asynchronously."""
         pw = await self._ensure_playwright()
 
-        bt = BrowserType(browser_type or self.browser_type.value)
+        bt = browser_type or self.browser_type
         hl = headless if headless is not None else self.headless
         vw = viewport_width or self.viewport_width
         vh = viewport_height or self.viewport_height
         ua = user_agent or self.user_agent
 
-        launcher = getattr(pw, bt.value)
+        launcher = getattr(pw, bt)
 
         launch_opts: Dict[str, Any] = {
             "headless": hl,
@@ -147,7 +149,7 @@ class BrowserMCPServer(BaseMCPServer):
             "console_messages": [],
             "info": BrowserSession(
                 session_id=session_id,
-                browser_type=bt.value,
+                browser_type=bt,
                 headless=hl,
                 viewport_width=vw,
                 viewport_height=vh,
@@ -216,7 +218,7 @@ class BrowserMCPServer(BaseMCPServer):
                     viewport_height=viewport_height,
                     user_agent=user_agent,
                 )
-                return {"success": True, "session": asdict(inst["info"])}
+                return {"success": True, "session": dict(inst["info"])}
             except Exception as e:
                 return {"error": str(e)}
 
@@ -233,7 +235,7 @@ class BrowserMCPServer(BaseMCPServer):
                         info.pages_count = len(inst["context"].pages)
                     except Exception:
                         pass
-                    sessions.append(asdict(info))
+                    sessions.append(dict(info))
                 return {
                     "count": len(sessions),
                     "active_session": self._active_session,
@@ -1312,43 +1314,5 @@ class BrowserMCPServer(BaseMCPServer):
 
 
 # ---------------------------------------------------------------------------
-# CLI entry point
+# CLI entry point lives in mcp_arena.cli (Typer-based).
 # ---------------------------------------------------------------------------
-
-def main():
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Browser Automation MCP Server")
-    parser.add_argument(
-        "--browser",
-        choices=["chromium", "firefox", "webkit"],
-        default="chromium",
-    )
-    parser.add_argument("--no-headless", action="store_true")
-    parser.add_argument("--viewport-width", type=int, default=1920)
-    parser.add_argument("--viewport-height", type=int, default=1080)
-    parser.add_argument(
-        "--transport",
-        choices=["stdio", "sse", "streamable-http"],
-        default="stdio",
-    )
-    parser.add_argument("--host", default="127.0.0.1")
-    parser.add_argument("--port", type=int, default=8000)
-    parser.add_argument("--debug", action="store_true")
-    args = parser.parse_args()
-
-    server = BrowserMCPServer(
-        browser_type=BrowserType(args.browser),
-        headless=not args.no_headless,
-        viewport_width=args.viewport_width,
-        viewport_height=args.viewport_height,
-        transport=args.transport,
-        host=args.host,
-        port=args.port,
-        debug=args.debug,
-    )
-    server.run()
-
-
-if __name__ == "__main__":
-    main()

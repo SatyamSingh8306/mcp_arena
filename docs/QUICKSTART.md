@@ -1,158 +1,154 @@
-# Quick Start Examples
+# Quick Start
 
-## 1. Install GitHub MCP Server Only
+## 1. Install
 
 ```bash
-pip install mcp_arena[github]
+pip install mcp-arena                      # core
+pip install mcp-arena[github]              # + GitHub preset
+pip install mcp-arena[agents]              # + LangChain agent helper
+pip install mcp-arena[all]                 # every preset
 ```
 
-## 2. Basic GitHub MCP Server
+## 2. Use a preset MCP server
 
 ```python
+import os
 from mcp_arena.presents.github import GithubMCPServer
-import os
 
-# Create server with your GitHub token
-token = os.getenv("GITHUB_TOKEN")
-server = GithubMCPServer(token=token)
-
-# Start the server
-server.run(host="localhost", port=8000)
-```
-
-## 3. Install Slack MCP Server Only
-
-```bash
-pip install mcp_arena[slack]
-```
-
-```python
-from mcp_arena.presents.slack import SlackMCPServer
-import os
-
-token = os.getenv("SLACK_BOT_TOKEN")
-server = SlackMCPServer(token=token)
+server = GithubMCPServer(token=os.environ["GITHUB_TOKEN"])
 server.run()
 ```
 
-## 4. Install Multiple Specific Servers
+That's it. Any MCP client can now talk to it.
 
-```bash
-# Install both GitHub and Slack
-pip install mcp_arena[github,slack]
-```
-
-## 5. Install All Available Servers
-
-```bash
-pip install mcp_arena[all]
-```
-
-## 6. Using with LangChain Agent
+## 3. Use the preset over stdio (default) or HTTP
 
 ```python
-from mcp_arena.agent.langgraph_agent import LangGraphAgent
+# Stdio (default — runs in-process; good for local MCP clients)
+server = GithubMCPServer(token=os.environ["GITHUB_TOKEN"])
+server.run()
+
+# HTTP — exposed over the network
+server = GithubMCPServer(token=os.environ["GITHUB_TOKEN"], transport="http", port=9001)
+server.run()
+
+# SSE — server-sent events
+server = GithubMCPServer(token=os.environ["GITHUB_TOKEN"], transport="sse", port=9001)
+server.run()
+```
+
+## 4. Hand a server to a LangChain agent
+
+```python
+import asyncio
+from langchain_openai import ChatOpenAI
+from mcp_arena.agent import make_mcp_agent
 from mcp_arena.presents.github import GithubMCPServer
-import os
 
-# Create MCP server
-github_server = GithubMCPServer(token=os.getenv("GITHUB_TOKEN"))
+async def main():
+    llm = ChatOpenAI(model="gpt-4o")
+    agent = await make_mcp_agent(
+        llm,
+        [GithubMCPServer(token=os.environ["GITHUB_TOKEN"])],
+        system_prompt="You can search GitHub.",
+    )
+    out = await agent.ainvoke({
+        "messages": [{"role": "user", "content": "List my repos"}]
+    })
+    print(out["messages"][-1].content)
 
-# Create agent that uses the MCP server
-agent = LangGraphAgent(
-    mcp_servers=[github_server],
-    model="gpt-4",
+asyncio.run(main())
+```
+
+## 5. Multiple servers, one agent
+
+```python
+agent = await make_mcp_agent(
+    llm,
+    [
+        GithubMCPServer(token=os.environ["GITHUB_TOKEN"]),
+        SlackMCPServer(token=os.environ["SLACK_BOT_TOKEN"]),
+    ],
+    system_prompt="You can search GitHub and post to Slack.",
 )
-
-# Ask the agent to do something
-result = agent.run("What are my recent GitHub repositories?")
-print(result)
 ```
 
-## 7. Custom Tool Registration
+## 6. Filter tools before they reach the agent
 
 ```python
-from mcp_arena.mcp.server import MCPServer
-from mcp_arena.tools.base import BaseTool
+from mcp_arena.agent import make_mcp_agent, ToolRegistry
 
-class MyCustomTool(BaseTool):
-    name = "my_custom_tool"
-    description = "Does something awesome"
-    
-    def execute(self, input: str) -> str:
-        return f"Processed: {input}"
+reg = ToolRegistry().register_server(slack_server)
+reg.keep("chat_postMessage", "list_channels")  # only these tools reach the agent
 
-# Create server
-server = MCPServer("my-server")
-server.register_tool(MyCustomTool())
-server.run()
+agent = await make_mcp_agent(
+    llm,
+    [slack_server],
+    names=reg.names(),
+)
 ```
 
-## 8. Configure Environment Variables
+## 7. Add a non-MCP tool
 
-Create `.env` file:
+```python
+from mcp_arena.agent import BaseTool, make_mcp_agent
+
+class ShoutTool(BaseTool):
+    def __init__(self):
+        super().__init__(name="shout", description="Uppercase a string")
+    def execute(self, text: str) -> str:
+        return text.upper()
+
+agent = await make_mcp_agent(
+    llm,
+    [github_server],
+    extra_tools=[ShoutTool()],
+)
+```
+
+## 8. Environment variables
+
 ```env
-# For GitHub MCP
 GITHUB_TOKEN=ghp_xxxxxxxxxxxx
-
-# For Slack MCP
 SLACK_BOT_TOKEN=xoxb-xxxxxxxxxxxx
-
-# For Notion MCP
 NOTION_API_KEY=secret_xxxxxxxxxxxx
-
-# Server Configuration
-MCP_SERVER_HOST=0.0.0.0
-MCP_SERVER_PORT=8000
-LOG_LEVEL=INFO
 ```
 
-Then in your code:
-```python
-import os
-from dotenv import load_dotenv
+`mcp_arena` calls `python-dotenv.load_dotenv()` at import time (`from mcp_arena import ...`), so a `.env` at the project root is picked up automatically.
 
-load_dotenv()
-
-github_token = os.getenv("GITHUB_TOKEN")
-slack_token = os.getenv("SLACK_BOT_TOKEN")
-```
-
-## 9. Using Memory/RAG
-
-```python
-from mcp_arena.mcp.server import MCPServer
-from mcp_arena.memory.faiss import FAISSMemory
-
-server = MCPServer("my-server")
-
-# Add FAISS memory for semantic search
-memory = FAISSMemory()
-server.set_memory(memory)
-
-# Index some documents
-memory.add_documents([
-    {"content": "Python is great", "metadata": {"type": "note"}},
-    {"content": "Rust is fast", "metadata": {"type": "note"}},
-])
-
-# Search documents
-results = memory.search("fast languages")
-```
-
-## 10. Running as CLI
+## 9. Run from the CLI
 
 ```bash
-# Using the mcp_arena CLI
-mcp_arena server --preset github --token $GITHUB_TOKEN
+# List available presets
+mcp-arena list
 
-# Or start a custom server
-mcp_arena run my_server.py
+# Show the help for one preset
+mcp-arena run github --help
+
+# Start a server
+mcp-arena run github --token "$GITHUB_TOKEN"
 ```
+
+## 10. Write your own preset
+
+```python
+from mcp_arena.mcp.server import BaseMCPServer
+
+class HelloServer(BaseMCPServer):
+    def _register_tools(self):
+        @self.mcp_server.tool()
+        def greet(name: str) -> str:
+            """Say hello."""
+            return f"Hello, {name}!"
+
+HelloServer(name="hello", description="Greeter").run()
+```
+
+Save as `mcp_arena/presents/hello.py` and it'll be auto-discovered by the lazy `mcp_arena.presents` loader — `from mcp_arena.presents import HelloServer` will Just Work.
 
 ---
 
-For more details, see:
-- [INSTALLATION.md](INSTALLATION.md) - Full installation guide
-- [README.md](README.md) - Core concepts and architecture
-- [CONTRIBUTING.md](CONTRIBUTING.md) - Development guidelines
+Next:
+- **[AGENT_GUIDE.md](AGENT_GUIDE.md)** — `make_mcp_agent`, `ToolRegistry`, forwarded `create_agent` params
+- **[LANGCHAIN_INTEGRATION.md](LANGCHAIN_INTEGRATION.md)** — multi-server, transport choices, sync wrapper
+- **[MCP_SERVERS_GUIDE.md](MCP_SERVERS_GUIDE.md)** — every preset in one place
