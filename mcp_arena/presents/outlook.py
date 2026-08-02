@@ -59,8 +59,6 @@ class OutlookMCPServer(BaseMCPServer):
                     client_credential=self.client_secret,
                 )
             except Exception:
-                # Offline / test env — keep stub headers so tool calls degrade
-                # gracefully rather than blowing up at construction time.
                 return self.headers
         try:
             result = self._msal_app.acquire_token_for_client(scopes=self.scopes)

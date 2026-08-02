@@ -51,10 +51,13 @@ class PostgresMCPServer(BaseMCPServer):
         transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
         debug: bool = False,
         auto_register_tools: bool = True,
+        database: Optional[str] = None,
+        user: Optional[str] = None,
+        password: Optional[str] = None,
         **base_kwargs
     ):
         """Initialize PostgreSQL MCP Server.
-        
+
         Args:
             connection_string: PostgreSQL connection string. If not provided, will try to get from POSTGRES_CONNECTION_STRING env var.
             host: Host to run server on
@@ -62,15 +65,28 @@ class PostgresMCPServer(BaseMCPServer):
             transport: Transport type
             debug: Enable debug mode
             auto_register_tools: Automatically register tools on initialization
+            database: Optional database name; builds a connection string if `connection_string` is missing.
+            user: Optional user; builds a connection string if `connection_string` is missing.
+            password: Optional password; builds a connection string if `connection_string` is missing.
             **base_kwargs: Additional arguments for BaseMCPServer
         """
         self.connection_string = connection_string or os.getenv("POSTGRES_CONNECTION_STRING")
+        if not self.connection_string and database:
+            creds = ""
+            if user:
+                creds = user
+                if password:
+                    creds += f":{password}"
+                creds += "@"
+            self.connection_string = f"postgresql://{creds}{host}:{port}/{database}"
         if not self.connection_string:
             raise ValueError(
                 "PostgreSQL connection string is required. "
                 "Provide it as argument or set POSTGRES_CONNECTION_STRING environment variable."
             )
-        
+
+        self.connection = psycopg2.connect(self.connection_string)
+
         super().__init__(
             name="PostgreSQL MCP Server",
             description="MCP server for interacting with PostgreSQL databases.",

@@ -227,15 +227,15 @@ The MCP-server layer is the product. The agent layer is a thin add-on that wraps
 
 ## Documents
 
-- [**MCP_SERVERS.md**](docs/MCP_SERVERS.md) — quick reference: every preset, what extra to install, what env vars each reads, ready-to-copy install commands.
-- [**MCP_SERVERS_GUIDE.md**](docs/MCP_SERVERS_GUIDE.md) — every preset in detail; `BaseMCPServer` constructor surface; how to write your own.
-- [**QUICKSTART.md**](docs/QUICKSTART.md) — 10-step walkthrough.
-- [**INSTALLATION.md**](docs/INSTALLATION.md) — full extras table (one entry per preset / per group).
-- [**TOOLS_GUIDE.md**](docs/TOOLS_GUIDE.md) — `ToolRegistry`, `BaseTool`, custom MCP presets.
+- [MCP Servers](docs/MCP_SERVERS.md) — quick reference: every preset, what extra to install, what env vars each reads, ready-to-copy install commands.
+- [MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md) — every preset in detail; `BaseMCPServer` constructor surface; how to write your own.
+- [Quick Start](docs/QUICKSTART.md) — 10-step walkthrough.
+- [Installation Guide](docs/INSTALLATION.md) — full extras table (one entry per preset / per group).
+- [Tools Guide](docs/TOOLS_GUIDE.md) — `ToolRegistry`, `BaseTool`, custom MCP presets.
 
 Agent & LangChain docs (read after the server-side docs above):
 
-- [**AGENT_GUIDE.md**](docs/AGENT_GUIDE.md) — `make_mcp_agent` reference, forwarded `create_agent` params, troubleshooting.
+- [Agent Guide](docs/AGENT_GUIDE.md) — `make_mcp_agent` reference, forwarded `create_agent` params, troubleshooting.
 - [**LANGCHAIN_INTEGRATION.md**](docs/LANGCHAIN_INTEGRATION.md) — multi-server, transport choices, sync wrapper, migration from 0.3.x.
 - [**tutorial.md**](docs/tutorial.md) — end-to-end "Jarvis" build (local-fs + GitHub agent).
 - [**CHANGELOG.md**](CHANGELOG.md) — version history & migration guide.

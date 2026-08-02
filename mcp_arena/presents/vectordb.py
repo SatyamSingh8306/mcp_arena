@@ -55,8 +55,6 @@ class VectorDBMCPServer(BaseMCPServer):
         "langchain_community": "vectordb",
         "langchain_huggingface": "vectordb",
         "langchain_openai": "vectordb",
-        # `langchain_pinecone` is only needed if the user opts into Pinecone.
-        "langchain_pinecone": "vectordb",
     }
     
     def __init__(
@@ -69,6 +67,7 @@ class VectorDBMCPServer(BaseMCPServer):
         openai_api_key: Optional[str] = None,
         pinecone_api_key: Optional[str] = None,
         pinecone_index_name: Optional[str] = None,
+        db_url: Optional[str] = None,
         host: str = "127.0.0.1",
         port: int = 8000,
         transport: Literal['stdio', 'sse', 'streamable-http'] = "streamable-http",
@@ -77,7 +76,7 @@ class VectorDBMCPServer(BaseMCPServer):
         **base_kwargs
     ):
         """Initialize Vector DB MCP Server.
-        
+
         Args:
             store_provider: vector database type (chroma, faiss, pinecone)
             collection_name: Name of collection/index
@@ -87,12 +86,15 @@ class VectorDBMCPServer(BaseMCPServer):
             openai_api_key: Key if using OpenAI embeddings
             pinecone_api_key: Key if using Pinecone store
             pinecone_index_name: Index name if using Pinecone
+            db_url: Optional connection URL; stored on the instance for callers that
+                want to inspect it. Chroma/FAISS use `persist_directory`; Pinecone uses
+                its own keys.
             **base_kwargs: Base server arguments
         """
-        
         self.store_provider = store_provider
         self.collection_name = collection_name
         self.persist_directory = persist_directory
+        self.db_url = db_url
         
         # 1. Initialize Embeddings
         self.embeddings: Embeddings = self._init_embeddings(

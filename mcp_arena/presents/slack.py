@@ -5,8 +5,9 @@ from dataclasses import dataclass, asdict, field
 from enum import Enum
 import os
 import json
-from slack_sdk import WebClient
+import slack_sdk
 from slack_sdk.errors import SlackApiError
+from slack_sdk import WebClient
 from mcp_arena.mcp.server import BaseMCPServer
 
 @dataclass
@@ -90,7 +91,7 @@ class SlackMCPServer(BaseMCPServer):
             )
 
         # Initialize Slack client
-        self.client = WebClient(token=self.bot_token)
+        self.client = slack_sdk.WebClient(token=self.bot_token)
         
         # Initialize base class
         super().__init__(

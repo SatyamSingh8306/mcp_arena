@@ -72,7 +72,8 @@ class BaseMCPServer(ABC):
         json_response: bool = False,
         stateless_http: bool = False,
         dependencies: Collection[str] = (),
-        auto_register_tools: bool = True
+        auto_register_tools: bool = True,
+        **extra_kwargs,
     ):
         """Initialize the base MCP server.
 
@@ -95,6 +96,7 @@ class BaseMCPServer(ABC):
         """
         require_extras(self._REQUIRED_EXTRAS)
 
+        self.auto_register_tools = auto_register_tools
         self.name = name
         self.description = description
         self.host = host
@@ -134,7 +136,12 @@ class BaseMCPServer(ABC):
         pass
     
     def __getattr__(self, name):
-        return getattr(self.mcp_server, name)
+        if name.startswith("_"):
+            raise AttributeError(name)
+        mcp_server = self.__dict__.get("mcp_server")
+        if mcp_server is not None and hasattr(mcp_server, name):
+            return getattr(mcp_server, name)
+        raise AttributeError(name)
 
     def _sync_registered_tools(self) -> None:
         """Sync registered tools from FastMCP for agent wrapper access."""

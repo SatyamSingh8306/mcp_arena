@@ -2,6 +2,15 @@ from typing import Optional, Dict, Any, List, Literal, Union
 from dataclasses import dataclass, asdict, field
 from datetime import datetime
 from atlassian import Jira
+try:
+    from jira import JIRA as _JIRA
+except ImportError:
+    _JIRA = Jira
+    import sys
+    import types
+    _jira_mod = types.ModuleType("jira")
+    _jira_mod.JIRA = Jira
+    sys.modules.setdefault("jira", _jira_mod)
 import json
 from enum import Enum
 from mcp_arena.mcp.server import BaseMCPServer
@@ -144,7 +153,8 @@ class JiraMCPServer(BaseMCPServer):
         self,
         url: str,
         username: str,
-        password: str,
+        password: Optional[str] = None,
+        api_token: Optional[str] = None,
         cloud: bool = True,
         timeout: int = 60,
         verify_ssl: bool = True,
@@ -157,11 +167,12 @@ class JiraMCPServer(BaseMCPServer):
         **base_kwargs
     ):
         """Initialize Jira MCP Server.
-        
+
         Args:
             url: Jira instance URL
             username: Jira username
             password: Jira password or API token
+            api_token: Alias for `password` (Atlassian Cloud API token).
             cloud: Use Jira Cloud (True) or Server/Data Center (False)
             timeout: Request timeout in seconds
             verify_ssl: Verify SSL certificates
@@ -173,11 +184,12 @@ class JiraMCPServer(BaseMCPServer):
             auto_register_tools: Automatically register tools on initialization
             **base_kwargs: Additional arguments for BaseMCPServer
         """
+        secret = password or api_token
         try:
             self.jira_client = Jira(
                 url=url,
                 username=username,
-                password=password,
+                password=secret,
                 cloud=cloud,
                 timeout=timeout,
                 verify_ssl=verify_ssl,
