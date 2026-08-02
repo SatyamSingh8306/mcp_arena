@@ -3,598 +3,338 @@
 [![PyPI version](https://badge.fury.io/py/mcp-arena.svg)](https://badge.fury.io/py/mcp-arena)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![PyPI Downloads](https://static.pepy.tech/personalized-badge/mcp-arena?period=total&units=INTERNATIONAL_SYSTEM&left_color=BLACK&right_color=GREEN&left_text=downloads)](https://pepy.tech/projects/mcp-arena)
 
-**mcp_arena** is a production-ready Python library for building **MCP (Model Context Protocol) servers** with intelligent agent orchestration and domain-specific presets.
+**`mcp_arena`** is an opinionated Python library for building **MCP (Model Context Protocol) servers**: 30+ ready-to-use presets you can stand up in one call, plus a thin bridge into a LangChain agent.
 
-## ✨ Features
-
-- 🚀 **Ready-to-use MCP servers** for popular platforms (GitHub, Slack, Notion, AWS, etc.)
-- 🤖 **Intelligent agents** with reflection, planning, and routing capabilities
-- 🔧 **Zero-configuration setup** for common use cases
-- 🏗️ **Extensible architecture** built on SOLID principles
-- 📦 **Modular design** - use only what you need
-
-## 🚀 Quick Start
-
-### Installation
-
-```bash
-# Core library
-pip install mcp-arena
-
-# With specific presets
-pip install mcp-arena[github,slack,notion]
-
-# All presets
-pip install mcp-arena[all]
-```
-
-### Basic Usage
+The headline feature is the **MCP server** — drop one in, run it, talk to it over stdio / SSE / HTTP:
 
 ```python
+# server.py
 from mcp_arena.presents.github import GithubMCPServer
-
-# Zero-config GitHub MCP server
-mcp_server = GithubMCPServer(token="your_github_token")
-mcp_server.run()
-```
-
-### Using Tools Directly
-
-```python
-from mcp_arena.tools.github import GithubTools
-from mcp_arena.presents.github import GithubMCPServer
-
-# Create GitHub MCP server first
-mcp_server = GithubMCPServer(token="your_token")
-
-# Create tools wrapper
-tool = GithubTools(server=mcp_server)
-tools = tool.get_list_of_tools()
-
-@mcp_server.tool()
-def add(a: int, b: int) -> int:
-    """Add two numbers"""
-    return a + b
-
-
-# Add a dynamic greeting resource
-@mcp_servevr.resource("greeting://{name}")
-def get_greeting(name: str) -> str:
-    """Get a personalized greeting"""
-    return f"Hello, {name}!"
-
-@mcp_server.prompt()
-def greet_user(name: str, style: str = "friendly") -> str:
-    """Generate a greeting prompt"""
-    styles = {
-        "friendly": "Please write a warm, friendly greeting",
-        "formal": "Please write a formal, professional greeting",
-        "casual": "Please write a casual, relaxed greeting",
-    }
-
-    return f"{styles.get(style, styles['friendly'])} for someone named {name}."
-
-```
-
-## Advance Documentation
-```
-from mcp.server.fastmcp import Icon
-from mcp_arena.presents.github import GithubMCPServer
-
-# Create an icon from a file path or URL
-icon = Icon(
-    src="icon.png",
-    mimeType="image/png",
-    sizes="64x64"
-)
-
-# Add icons to server
-mcp = GithubMCPServer(
-    "My Server",
-    website_url="https://example.com",
-    token="*******",
-    icons=[icon]
-)
-
-# Add icons to tools, resources, and prompts
-@mcp.tool(icons=[icon])
-def my_tool():
-    """Tool with an icon."""
-    return "result"
-
-@mcp.resource("demo://resource", icons=[icon])
-def my_resource():
-    """Resource with an icon."""
-    return "content"
-
-
-```
-
-### With Agent Orchestration
-
-```python
-from mcp_arena.presents.github import GithubMCPServer
-from mcp_arena.agent.react_agent import ReactAgent
-
-# Create MCP server
-mcp_server = GithubMCPServer(token="your_token")
-
-# Create agent separately
-agent = ReactAgent(llm=None, memory_type="conversation")
-
-# Run the server
-mcp_server.run()
-```
-
-### LangChain Integration
-
-#### Using MCP Arena Wrapper
-
-```python
-from mcp_arena.wrapper.langchain_wrapper import MCPLangChainWrapper
-from mcp_arena.presents.github import GithubMCPServer
-
-# Create MCP server
-github_server = GithubMCPServer(token="your_token")
-
-# Wrap with LangChain
-wrapper = MCPLangChainWrapper(
-    servers={"github": github_server},
-    auto_start=True
-)
-
-# Connect and create agent
-await wrapper.connect()
-agent = wrapper.create_agent(
-    llm="gpt-4-turbo",
-    system_prompt="You are a GitHub assistant"
-)
-```
-
-#### Direct langchain_mcp_adapters Usage
-
-```python
-from langchain_mcp_adapters.client import MultiServerMCPClient  
-from langchain.agents import create_agent
-from mcp_arena.presents.github import GithubMCPServer
-
-# Start GitHub MCP server in background
-github_server = GithubMCPServer(token="your_token", transport="stdio")
-github_server.run()
-
-# Create client with multiple servers
-client = MultiServerMCPClient(  
-    {
-        "github": {
-            "transport": "stdio",
-            "command": "python",
-            "args": ["/path/to/github_server_script.py"],
-        },
-        "math": {
-            "transport": "http",
-            "url": "http://localhost:8001/mcp",
-        }
-    }
-)
-
-tools = await client.get_tools()  
-agent = create_agent(
-    "claude-sonnet-4-5-20250929",
-    tools  
-)
-
-# Use the agent
-github_response = await agent.ainvoke(
-    {"messages": [{"role": "user", "content": "List my GitHub repositories"}]}
-)
-math_response = await agent.ainvoke(
-    {"messages": [{"role": "user", "content": "what's (3 + 5) x 12?"}]}
-)
-```
-
-## 📚 Available Presets
-
-### Browser & Automation
-- **Browser** - Browser automation with Playwright (navigate, screenshot, forms, extract data)
-- **Screen Capture** - Take screenshots and screen recordings with PyAutoGUI
-
-### Video & Media
-- **Video** - Video editing (trim, merge, effects, format conversion) with FFmpeg
-- **PDF** - PDF processing (extract text/images, merge, split, watermark, encrypt)
-- **QR Code** - Generate and decode QR codes
-
-### Data & Files
-- **Spreadsheet** - Excel/CSV read/write with pandas and openpyxl
-- **Web Scraping** - Extract data from websites with requests and BeautifulSoup
-
-### Communication
-- **Slack** - Channels, messages, workflows
-- **WhatsApp** - Messaging via Twilio API
-- **Gmail** - Email management and sending
-- **Outlook** - Microsoft 365 email and calendar
-- **Discord** - Servers and channels
-- **Teams** - Microsoft Teams integration
-- **Notification** - Multi-platform notifications (Email, Slack, webhooks)
-
-### Development Platforms
-- **GitHub** - Repositories, issues, PRs, workflows
-- **GitLab** - Projects, CI/CD, issues
-- **Bitbucket** - Repositories and pipelines
-
-### Productivity
-- **Notion** - Databases, pages, blocks
-- **Confluence** - Spaces and pages
-- **Jira** - Projects, issues, workflows
-
-### Cloud Services
-- **AWS S3** - Storage operations
-- **Azure Blob** - Azure storage
-- **Google Cloud Storage** - GCP storage
-
-### System Operations
-- **Local Operations** - File system and system ops
-- **Docker** - Container management
-- **Kubernetes** - Cluster operations
-
-## 🤖 Agent Types
-
-### Reflection Agent
-Self-improving agent that refines responses through iterative refinement.
-
-```python
-from mcp_arena.agent.reflection_agent import ReflectionAgent
-
-agent = ReflectionAgent(
-    llm=None,
-    memory_type="conversation"
-)
-```
-
-### ReAct Agent
-Systematic reasoning and acting cycle for complex problem-solving.
-
-```python
-from mcp_arena.agent.react_agent import ReactAgent
-
-agent = ReactAgent(
-    llm=None,
-    memory_type="conversation"
-)
-```
-
-### Planning Agent
-Goal decomposition and step-by-step execution for complex tasks.
-
-```python
-from mcp_arena.agent.planning_agent import PlanningAgent
-
-agent = PlanningAgent(
-    llm=None,
-    memory_type="conversation"
-)
-```
-
-### Router Agent
-Dynamic agent selection based on task requirements.
-
-```python
-from mcp_arena.agent.router import AgentRouter
-
-router = AgentRouter()
-
-# Add routing rules
-router.add_route(
-    condition=lambda input_text: "github" in input_text.lower(),
-    agent_type="react",
-    config={"llm": your_llm}
-)
-
-router.add_route(
-    condition=lambda input_text: "reflect" in input_text.lower(),
-    agent_type="reflection",
-    config={"llm": your_llm}
-)
-```
-
-## 🔧 Custom Tools
-
-Extend any preset with custom tools:
-
-```python
-from mcp_arena.presents.github import GithubMCPServer
-from mcp_arena.tools.base import tool
-
-@tool(description="Custom repository analyzer")
-def analyze_repo(repo: str) -> str:
-    return f"Analysis for {repo}"
 
 server = GithubMCPServer(
-    token="your_token",
-    extra_tools=[analyze_repo]
+    token="ghp_…",                        # or pull from $GITHUB_TOKEN
+    host="127.0.0.1",
+    port=8000,
+    transport="stdio",                     # stdio (default) | sse | http
+    debug=False,
 )
+
+if __name__ == "__main__":
+    server.run()
 ```
 
-## 🤖 LangChain Integration
+Any MCP client can now talk to it. The full preset list, constructor kwargs, and `BaseMCPServer` surface are in [`MCP_SERVERS_GUIDE.md`](docs/MCP_SERVERS_GUIDE.md). The LangChain-agent bridge is at the bottom of this README — read after you've understood the server side.
 
-Integrate mcp_arena MCP servers with LangChain agents for powerful multi-service automation:
+> **0.4.0 release:** the old `ReflectionAgent` / `ReactAgent` / `PlanningAgent` / policies / memory / router stack is gone. The agent subsystem is now one function: `make_mcp_agent`. Migration guide in [`CHANGELOG.md`](CHANGELOG.md).
 
-```python
-from langchain_openai import ChatOpenAI
-from mcp_arena.wrapper.langchain_wrapper import MCPLangChainWrapper
-from mcp_arena.presents.browser import BrowserMCPServer
+## Why mcp_arena?
 
-# Initialize LLM
-llm = ChatOpenAI(model="gpt-4-turbo")
+- **30+ ready-to-run MCP server presets.** Slack, GitHub, Notion, Gmail, PostgreSQL, Mongo, Redis, S3, browsers, video, audio, PDFs, QR codes, webscraping, and more — install one extra, import one class, call `server.run()`. Any MCP-compatible client can talk to it.
+- **Each preset is a real `BaseMCPServer`.** Tools register at construction, are exposed on `_registered_tools` for inspection, and the server can be started over stdio / SSE / HTTP in one call.
+- **Lazy-loaded presets.** `mcp_arena.presents.__init__` AST-scans the directory; importing one preset doesn't pull in unrelated deps.
+- **Drop-in extension.** New MCP server? Write a `*Server` subclass in `mcp_arena/presents/<name>.py`; it's auto-discovered.
+- **Optional LangChain bridge.** `make_mcp_agent(llm, servers, ...)` is the only function that wires the same server objects into a LangGraph agent. Forward any `create_agent` kwarg through `**kwargs`.
 
-# Create wrapper with browser server
-wrapper = MCPLangChainWrapper(
-    servers={"browser": BrowserMCPServer(headless=True)},
-    auto_start=True
-)
+## Install
 
-# Connect and create agent
-await wrapper.connect()
-agent = wrapper.create_agent(
-    llm=llm,
-    system_prompt="You are a helpful browser automation assistant"
-)
+> ⚠️ **`pip install mcp-arena` ships three general-purpose presets in core** — `LocalOperationsMCPServer`, `GenericAPIMCPServer`, and `SMTPServer` — so you can run a real MCP server with zero extra setup. Every other preset is gated behind an extra so you only pay for the third-party packages you actually need.
 
-# Use the agent
-response = await wrapper.invoke_agent(
-    agent,
-    "Go to example.com and tell me the page title"
-)
-```
-
-### Multi-Server Agent Example
-
-```python
-from langchain_openai import ChatOpenAI
-from mcp_arena.wrapper.langchain_wrapper import MCPLangChainWrapper
-from mcp_arena.presents.browser import BrowserMCPServer
-from mcp_arena.presents.pdf import PDFMCPServer
-from mcp_arena.presents.web_scraping import WebScrapingMCPServer
-
-# Initialize LLM
-llm = ChatOpenAI(model="gpt-4-turbo")
-
-# Create wrapper with multiple servers
-wrapper = MCPLangChainWrapper(
-    servers={
-        "browser": BrowserMCPServer(headless=True),
-        "pdf": PDFMCPServer(),
-        "web": WebScrapingMCPServer()
-    },
-    auto_start=True
-)
-
-# Connect and create agent with all tools
-await wrapper.connect()
-agent = wrapper.create_agent(
-    llm=llm,
-    system_prompt="""You are a powerful research assistant with access to:
-    - Browser automation (navigate websites, take screenshots)
-    - PDF processing (extract text, merge, split)
-    - Web scraping (extract data from websites)
-    """
-)
-
-# Use the agent
-response = await wrapper.invoke_agent(
-    agent,
-    "Research climate change: find a Wikipedia article, take a screenshot, and extract key facts to a PDF"
-)
-```
-
-**Installation:**
 ```bash
-pip install langchain-openai langchain-mcp-adapters
-pip install "mcp-arena[browser,video,pdf,webscraping]"
+pip install mcp-arena                       # 3 core presets work out of the box
+pip install "mcp-arena[github]"             # + GitHub preset (PyGithub)
+pip install "mcp-arena[github,slack]"       # + several presets
+pip install "mcp-arena[all]"                # + every preset (~30 packages)
+pip install "mcp-arena[agents]"             # + LangChain bridge (langchain + MCP adapter)
 ```
 
-📖 **[Full Documentation](docs/LANGCHAIN_INTEGRATION.md)**
-📖 **[Agent Examples](mcp_arena/examples/mcp_server_agent_examples.py)**
+What `pip install mcp-arena` **does** give you out of the box:
+- `mcp_arena.mcp.server.BaseMCPServer` — the base class
+- `mcp_arena.presents` lazy loader — every preset class is importable
+- **`LocalOperationsMCPServer`** — file / system / process tools (uses `psutil` + `pyautogui`)
+- **`GenericAPIMCPServer`** — make any HTTP API call (uses `httpx`)
+- **`SMTPServer`** — send email via any SMTP server (pure stdlib)
+- `mcp_arena.agent.make_mcp_agent` / `ToolRegistry` / `BaseTool`
+- `mcp-arena` CLI (`mcp-arena list`, `mcp-arena run <preset>`)
 
-## 🏗️ Custom MCP Server
+What it **does not** install: anything else. If you try to instantiate a preset whose required dep isn't installed, you get a clear `ImportError` pointing at the exact install command — for example:
 
-Build from scratch for full control:
+```
+PyPDF2, fitz, pdfplumber and reportlab are required for this MCP server but are not installed.
+Install it with:    pip install "mcp-arena[pdf]"
+```
+
+Pick the right extra from [INSTALLATION.md](docs/INSTALLATION.md) or [MCP_SERVERS.md](docs/MCP_SERVERS.md).
+
+Python 3.12+. See [INSTALLATION.md](docs/INSTALLATION.md) for the full extras table.
+
+## Run an MCP server
+
+Every preset is a `BaseMCPServer` subclass. After construction, call `server.run()` to start serving.
+
+### Stdio (default — works with any local MCP client)
 
 ```python
-from mcp_arena.mcp.server import BaseMCPServer
-from mcp_arena.tools.base import tool
+from mcp_arena.presents.github import GithubMCPServer
 
-@tool(description="Search internal docs")
-def search_docs(query: str) -> str:
-    return f"Results for {query}"
+server = GithubMCPServer(token="ghp_…")
+server.run()                                        # transport="stdio"
+```
 
-class CustomMCPServer(BaseMCPServer):
-    def _register_tools(self):
-        self.add_tool(search_docs)
+Now point any MCP-compatible client at the process (e.g. Claude Desktop, Cursor, the `mcp-arena` CLI).
 
-server = CustomMCPServer(
-    name="custom-server",
-    description="Custom MCP server"
-)
+### HTTP / SSE (for remote clients)
+
+```python
+server = GithubMCPServer(token="ghp_…", transport="sse", host="0.0.0.0", port=8001)
 server.run()
+# -> listening on http://0.0.0.0:8001/sse
+
+# or streamable-http:
+server = GithubMCPServer(token="ghp_…", transport="http", port=8001)
+server.run()
+# -> listening on http://0.0.0.0:8001/mcp
 ```
 
-## 📖 Documentation
+| Transport         | Endpoint                        | When to use                       |
+| ----------------- | ------------------------------- | --------------------------------- |
+| `stdio` (default) | in-process via stdin/stdout     | local clients, the `make_mcp_agent` flow |
+| `sse`             | `http://<host>:<port>/sse`      | browser clients, streaming        |
+| `http`            | `http://<host>:<port>/mcp`      | multi-process / networked setups   |
+| `streamable-http` | alias for `http`                | —                                 |
 
-- **[Installation Guide](docs/INSTALLATION.md)** - Detailed installation instructions for all presets and communication services
-- **[MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md)** - Comprehensive guide to all 17 available MCP servers
-- **[Agent Guide](docs/AGENT_GUIDE.md)** - Using and configuring intelligent agents
-- **[Tools Guide](docs/TOOLS_GUIDE.md)** - Tool development and integration
-- **[LangChain Integration](docs/LANGCHAIN_INTEGRATION.md)** - Integrate MCP servers with LangChain agents
-- **[Quick Start](docs/QUICKSTART.md)** - Get started in minutes
-- **[Tutorial](docs/tutorial.md)** - Step-by-step tutorial
+### Credentials: pass them in or pull from `os.environ`
 
-### Architecture
+```python
+# Inline:
+server = GithubMCPServer(token="ghp_…")
 
-```
-MCP Client
-   │
-   ▼
-┌─────────────────┐
-│   MCP Server    │  ← Core Layer
-│ - Protocol      │
-│ - Auth          │
-│ - Tool Registry │
-└─────────────────┘
-   │
-   ▼
-┌─────────────────┐
-│  Agent System   │  ← Intelligence Layer
-│ - Reflection    │
-│ - ReAct         │
-│ - Planning      │
-│ - Router        │
-└─────────────────┘
-   │
-   ▼
-┌─────────────────┐
-│ Tool Ecosystem  │  ← Execution Layer
-│ - Presets       │
-│ - Custom Tools  │
-│ - Orchestration │
-└─────────────────┘
+# Env-var fallback (most presets read these for you):
+#   GITHUB_TOKEN, SLACK_BOT_TOKEN, NOTION_API_KEY, TWILIO_* …
+server = GithubMCPServer()                          # picks up GITHUB_TOKEN
 ```
 
-### Installation Options
+`from mcp_arena import …` calls `python-dotenv.load_dotenv()` for you, so a project-root `.env` is read automatically.
+
+### From the CLI
 
 ```bash
-# Core only
-pip install mcp-arena[core]
+# List every preset mcp_arena knows about
+mcp-arena list
 
-# Browser automation
-pip install mcp-arena[browser]
+# Show options for one preset
+mcp-arena run github --help
 
-# Video editing
-pip install mcp-arena[video]
-
-# PDF processing
-pip install mcp-arena[pdf]
-
-# QR code generation
-pip install mcp-arena[qrcode]
-
-# Spreadsheet operations
-pip install mcp-arena[spreadsheet]
-
-# Web scraping
-pip install mcp-arena[webscraping]
-
-# Screen capture
-pip install mcp-arena[screencapture]
-
-# Cloud storage (AWS S3, GCS, Azure)
-pip install mcp-arena[cloudstorage]
-
-# Notifications (Email, Slack, webhooks)
-pip install mcp-arena[notification]
-
-# Development platforms
-pip install mcp-arena[github,gitlab,bitbucket]
-
-# Data & storage
-pip install mcp-arena[postgres,mongodb,redis,vectordb]
-
-# Communication
-pip install mcp-arena[slack,whatsapp,gmail,outlook]
-
-# All communication services
-pip install mcp-arena[communication]
-
-# Productivity
-pip install mcp-arena[notion,confluence,jira]
-
-# Cloud services
-pip install mcp-arena[aws,docker,kubernetes]
-
-# System operations
-pip install mcp-arena[local_operation]
-
-# Agent framework
-pip install mcp-arena[agents]
-
-# All presets
-pip install mcp-arena[all]
-
-# Complete with dev tools
-pip install mcp-arena[complete]
+# Start a server (stdio by default; pass --transport sse|http for network)
+mcp-arena run github --token "$GITHUB_TOKEN"
+mcp-arena run github --token "$GITHUB_TOKEN" --transport sse --host 0.0.0.0 --port 8001
 ```
 
-## 🤝 Contributing
+### Use a preset programmatically without the MCP protocol
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+You don't have to speak MCP — `BaseMCPServer` exposes the registered tools directly:
 
-### Development Setup
+```python
+server = AudioMCPServer()
+for tool_name in server.get_registered_tools():
+    print(tool_name)
+
+# Or wrap them as plain Python callables:
+from mcp_arena.wrapper import MCPAgentWrapper
+for tool in MCPAgentWrapper(server).get_tools():
+    print(tool["function"]["name"])
+```
+
+See [`MCP_SERVERS_GUIDE.md`](docs/MCP_SERVERS_GUIDE.md) for the full preset list, the `BaseMCPServer` constructor surface, and how to write your own.
+
+---
+
+## Available presets
+
+Every preset is one extra. Install what you need; nothing else gets pulled in.
+
+### Communication
+`slack`, `whatsapp`, `gmail`, `outlook`, `smtp`, `mail`, `notification`
+
+### Dev platforms
+`github`, `gitlab`, `bitbucket`
+
+### Productivity
+`notion`, `confluence`, `jira`
+
+### Data & storage
+`postgres`, `mongo`, `redis`, `vectordb`
+
+### Cloud / OS
+`aws` (S3), `cloudstorage`, `docker`, `local_operation`, `screencapture`
+
+### Browser / web / media
+`browser`, `webscraping`, `generic_api`, `image`, `video`, `audio`, `pdf`, `qrcode`, `spreadsheet`
+
+See [`docs/MCP_SERVERS_GUIDE.md`](docs/MCP_SERVERS_GUIDE.md) for the full table, kwargs, and transport notes.
+
+## Write your own preset
+
+```python
+# mcp_arena/presents/greeter.py
+from mcp_arena.mcp.server import BaseMCPServer
+
+class GreeterMCPServer(BaseMCPServer):
+    def _register_tools(self):
+        @self.mcp_server.tool()
+        def greet(name: str) -> str:
+            """Say hello."""
+            return f"Hello, {name}!"
+
+# Now importable:
+from mcp_arena.presents import GreeterMCPServer
+```
+
+The lazy loader in `mcp_arena.presents` AST-discovers every `*Server` class in the directory. Drop the file, import the class — done.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                 mcp_arena.presents                      │
+│  ~30 *MCPServer subclasses (auto-discovered)           │
+│  Browser · Slack · GH · Postgres · AWS · ...            │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│                BaseMCPServer.run()                      │
+│  stdio / sse / http — talks to any MCP client           │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼ (optional)
+┌─────────────────────────────────────────────────────────┐
+│                   mcp_arena.agent                        │
+│  • make_mcp_agent(llm, servers, ...)  → LangGraph agent  │
+│  • ToolRegistry (register / keep / drop / rename /      │
+│    to_openai / get_callables)                           │
+│  • BaseTool (subclass-this for non-MCP tools)           │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│   langchain.agents.create_agent → langgraph runnable    │
+│   (compiled via langchain-mcp-adapters.MultiServerMCP…) │
+└─────────────────────────────────────────────────────────┘
+```
+
+The MCP-server layer is the product. The agent layer is a thin add-on that wraps the same server objects with a LangGraph.
+
+## Documents
+
+- [MCP Servers](docs/MCP_SERVERS.md) — quick reference: every preset, what extra to install, what env vars each reads, ready-to-copy install commands.
+- [MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md) — every preset in detail; `BaseMCPServer` constructor surface; how to write your own.
+- [Quick Start](docs/QUICKSTART.md) — 10-step walkthrough.
+- [Installation Guide](docs/INSTALLATION.md) — full extras table (one entry per preset / per group).
+- [Tools Guide](docs/TOOLS_GUIDE.md) — `ToolRegistry`, `BaseTool`, custom MCP presets.
+
+Agent & LangChain docs (read after the server-side docs above):
+
+- [Agent Guide](docs/AGENT_GUIDE.md) — `make_mcp_agent` reference, forwarded `create_agent` params, troubleshooting.
+- [**LANGCHAIN_INTEGRATION.md**](docs/LANGCHAIN_INTEGRATION.md) — multi-server, transport choices, sync wrapper, migration from 0.3.x.
+- [**tutorial.md**](docs/tutorial.md) — end-to-end "Jarvis" build (local-fs + GitHub agent).
+- [**CHANGELOG.md**](CHANGELOG.md) — version history & migration guide.
+
+## Bonus: wire a server to a LangChain agent
+
+If you already have a LangChain workflow and want to give it access to MCP tools, `make_mcp_agent` is the one-line bridge:
+
+```python
+import asyncio, os
+from langchain_openai import ChatOpenAI
+from mcp_arena.agent import make_mcp_agent
+from mcp_arena.presents.github import GithubMCPServer
+from mcp_arena.presents.slack import SlackMCPServer
+
+async def main():
+    agent = await make_mcp_agent(
+        ChatOpenAI(model="gpt-4o"),
+        [
+            GithubMCPServer(token=os.environ["GITHUB_TOKEN"]),
+            SlackMCPServer(token=os.environ["SLACK_BOT_TOKEN"]),
+        ],
+        system_prompt="You can search GitHub and post to Slack.",
+        name="devops_bot",
+    )
+    out = await agent.ainvoke({
+        "messages": [{
+            "role": "user",
+            "content": "Find the top-3 starred repos in my org and post links to #general.",
+        }],
+    })
+    print(out["messages"][-1].content)
+
+asyncio.run(main())
+```
+
+`make_mcp_agent` handles the connection between MCP-server transports and the LangChain `MultiServerMCPClient`, then forwards to `langchain.agents.create_agent`. See [`LANGCHAIN_INTEGRATION.md`](docs/LANGCHAIN_INTEGRATION.md).
+
+### Filter tools before they reach the model
+
+```python
+from mcp_arena.agent import ToolRegistry, make_mcp_agent
+
+reg = ToolRegistry().register_server(slack_server)
+print("Available:", reg.names())         # ['chat_postMessage', 'list_channels', ...]
+reg.keep("chat_postMessage", "list_channels")
+
+agent = await make_mcp_agent(
+    ChatOpenAI(model="gpt-4o"),
+    [slack_server],
+    names=reg.names(),                   # only these tools become agent tools
+)
+```
+
+### Add a custom (non-MCP) tool
+
+```python
+from mcp_arena.agent import BaseTool, make_mcp_agent
+
+class ShoutTool(BaseTool):
+    def __init__(self):
+        super().__init__(name="shout", description="Uppercase a string")
+    def execute(self, s: str) -> str:
+        return s.upper()
+
+agent = await make_mcp_agent(
+    ChatOpenAI(model="gpt-4o"),
+    [slack_server],
+    extra_tools=[ShoutTool()],
+)
+```
+
+## Contributing
 
 ```bash
-# Clone the repository
-git clone https://github.com/SatyamSingh8306/mcp_arena.git
+git clone https://github.com/SatyamSingh8306/mcp_arena
 cd mcp_arena
-
-# Install in development mode
-pip install -e .[dev]
-
-# Run tests
+pip install -e ".[complete]"
 pytest
-
-# Run linting
 black .
-isort .
-mypy .
+ruff check .
+mypy mcp_arena
 ```
 
-### Priority Areas
+Priority areas: new presets, bug fixes, doc accuracy.
 
-- New preset implementations
-- Agent pattern improvements  
-- Documentation and examples
-- Bug fixes and performance
-
-## 📋 Requirements
+## Requirements
 
 - Python 3.12+
-- MCP client compatible with Model Context Protocol v1.0+
+- An MCP-compatible client to actually consume the servers (or use `make_mcp_agent` to wire one into LangChain)
+- Optional: your LLM provider's `langchain-*` adapter for the agent flow
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT — see [LICENSE](LICENSE).
 
-## 🔗 Links
+## Links
 
-- [Documentation](docs/) - Complete documentation library
-- [Installation Guide](docs/INSTALLATION.md) - Installation instructions
-- [MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md) - Server documentation
-- [LangChain Integration](docs/LANGCHAIN_INTEGRATION.md) - LangChain integration guide
-- [Repository](https://github.com/SatyamSingh8306/mcp_arena.git)
-- [Issues](https://github.com/SatyamSingh8306/mcp_arena/issues)
+- [GitHub repository](https://github.com/SatyamSingh8306/mcp_arena)
+- [Issue tracker](https://github.com/SatyamSingh8306/mcp_arena/issues)
 - [PyPI](https://pypi.org/project/mcp-arena/)
-
-## 🚧 Status
-
-**Version:** 0.2.1 (Production-ready)
-
-✅ **Stable Features:**
-- MCP server base classes
-- 17 production-ready presets
-- 4 agent types
-- Tool registration system
-- SOLID architecture
-- Communication services (Gmail, Outlook, Slack, WhatsApp)
-
-🔄 **Evolving APIs:**
-- Agent interfaces may enhance based on feedback
-- New preset additions
-- Performance optimizations
-
-📈 **Production Ready:**
-- Comprehensive documentation
-- Active development
-- Community support
-
-
+- [CHANGELOG](CHANGELOG.md)

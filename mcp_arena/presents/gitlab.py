@@ -161,6 +161,7 @@ class FileInfo:
 
 class GitLabMCPServer(BaseMCPServer):
     """GitLab MCP Server for GitLab platform operations."""
+    _REQUIRED_EXTRAS = {"gitlab": "gitlab"}
     
     def __init__(
         self,
@@ -168,6 +169,7 @@ class GitLabMCPServer(BaseMCPServer):
         private_token: Optional[str] = None,
         oauth_token: Optional[str] = None,
         job_token: Optional[str] = None,
+        token: Optional[str] = None,
         ssl_verify: bool = True,
         timeout: int = 60,
         per_page: int = 100,
@@ -182,12 +184,13 @@ class GitLabMCPServer(BaseMCPServer):
         **base_kwargs
     ):
         """Initialize GitLab MCP Server.
-        
+
         Args:
             url: GitLab instance URL (default: https://gitlab.com)
             private_token: Private access token
             oauth_token: OAuth2 token
             job_token: CI job token
+            token: Alias for `private_token` (concise client-friendly name).
             ssl_verify: Verify SSL certificates
             timeout: Request timeout in seconds
             per_page: Items per page for pagination
@@ -201,6 +204,8 @@ class GitLabMCPServer(BaseMCPServer):
             auto_register_tools: Automatically register tools on initialization
             **base_kwargs: Additional arguments for BaseMCPServer
         """
+        if token and not private_token:
+            private_token = token
         # Initialize GitLab client
         try:
             # Determine authentication method

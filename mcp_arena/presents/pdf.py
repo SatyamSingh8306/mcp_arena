@@ -1,157 +1,73 @@
-"""
-PDF Processing MCP Server
-A comprehensive PDF manipulation server using PyMuPDF, PyPDF2, and ReportLab for advanced
-PDF operations including extraction, modification, conversion, and generation.
-"""
-from typing import Optional, Dict, Any, List, Literal, Union
-from enum import Enum
-from dataclasses import dataclass, asdict
-from datetime import datetime
+"""PDF processing MCP server: extract, convert, manipulate, generate."""
 import os
-import json
-import io
-import base64
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional
+
 from mcp_arena.mcp.server import BaseMCPServer
 
-# Lazy imports
-_fitz = None
-_pypdf2 = None
-_reportlab = None
-_pdfplumber = None
+try:
+    import fitz as _fitz_lib
+except ImportError:
+    _fitz_lib = None
 
-def _import_fitz():
-    """Lazily import PyMuPDF (fitz)."""
-    global _fitz
-    if _fitz is None:
-        try:
-            import fitz
-            _fitz = fitz
-        except ImportError:
-            raise ImportError(
-                "PyMuPDF is required for PDFMCPServer. "
-                "Install it with: pip install PyMuPDF"
-            )
-    return _fitz
+try:
+    from PyPDF2 import PdfReader as _PdfReader, PdfWriter as _PdfWriter
+except ImportError:
+    _PdfReader = _PdfWriter = None
 
-def _import_pypdf2():
-    """Lazily import PyPDF2."""
-    global _pypdf2
-    if _pypdf2 is None:
-        try:
-            from PyPDF2 import PdfReader, PdfWriter
-            _pypdf2 = (PdfReader, PdfWriter)
-        except ImportError:
-            raise ImportError(
-                "PyPDF2 is required for PDFMCPServer. "
-                "Install it with: pip install PyPDF2"
-            )
-    return _pypdf2
+try:
+    from reportlab.pdfgen import canvas as _rl_canvas
+    from reportlab.lib.pagesizes import letter as _rl_letter, A4 as _rl_A4
+    from reportlab.lib.styles import getSampleStyleSheet as _rl_get_styles
+    from reportlab.platypus import (
+        SimpleDocTemplate as _rl_doc, Paragraph as _rl_para, Spacer as _rl_spacer
+    )
+    from reportlab.lib.units import inch as _rl_inch
+except ImportError:
+    _rl_canvas = _rl_letter = _rl_A4 = _rl_get_styles = None
+    _rl_doc = _rl_para = _rl_spacer = _rl_inch = None
 
-def _import_reportlab():
-    """Lazily import ReportLab."""
-    global _reportlab
-    if _reportlab is None:
-        try:
-            from reportlab.pdfgen import canvas
-            from reportlab.lib.pagesizes import letter, A4
-            from reportlab.lib.styles import getSampleStyleSheet
-            from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-            from reportlab.lib.units import inch
-            _reportlab = {
-                'canvas': canvas,
-                'pagesizes': {'letter': letter, 'A4': A4},
-                'styles': getSampleStyleSheet,
-                'SimpleDocTemplate': SimpleDocTemplate,
-                'Paragraph': Paragraph,
-                'Spacer': Spacer,
-                'inch': inch
-            }
-        except ImportError:
-            raise ImportError(
-                "ReportLab is required for PDF generation. "
-                "Install it with: pip install reportlab"
-            )
-    return _reportlab
-
-def _import_pdfplumber():
-    """Lazily import pdfplumber."""
-    global _pdfplumber
-    if _pdfplumber is None:
-        try:
-            import pdfplumber
-            _pdfplumber = pdfplumber
-        except ImportError:
-            raise ImportError(
-                "pdfplumber is required for advanced PDF analysis. "
-                "Install it with: pip install pdfplumber"
-            )
-    return _pdfplumber
+try:
+    import pdfplumber as _pdfplumber_lib
+except ImportError:
+    _pdfplumber_lib = None
 
 
-class PDFFormat(str, Enum):
-    """PDF formats and conversions."""
-    PDF = "pdf"
-    TXT = "txt"
-    HTML = "html"
-    PNG = "png"
-    JPEG = "jpeg"
-    SVG = "svg"
+def _ensure_fitz():
+    if _fitz_lib is None:
+        raise ImportError("PyMuPDF is required. pip install PyMuPDF")
+    return _fitz_lib
 
 
-class PageLayout(str, Enum):
-    """Page layout options."""
-    PORTRAIT = "portrait"
-    LANDSCAPE = "landscape"
+def _ensure_pypdf2():
+    if _PdfReader is None:
+        raise ImportError("PyPDF2 is required. pip install PyPDF2")
+    return _PdfReader, _PdfWriter
 
 
-@dataclass
-class PDFInfo:
-    """PDF file information."""
-    path: str
-    filename: str
-    pages: int
-    version: str
-    encrypted: bool
-    size_bytes: int
-    title: Optional[str]
-    author: Optional[str]
-    creator: Optional[str]
-    producer: Optional[str]
-    creation_date: Optional[str]
-    modification_date: Optional[str]
+def _ensure_reportlab():
+    if _rl_doc is None:
+        raise ImportError("reportlab is required. pip install reportlab")
+    return {
+        "canvas": _rl_canvas,
+        "pagesizes": {"letter": _rl_letter, "A4": _rl_A4},
+        "styles": _rl_get_styles,
+        "doc": _rl_doc,
+        "para": _rl_para,
+        "spacer": _rl_spacer,
+        "inch": _rl_inch,
+    }
 
 
-@dataclass
-class PDFText:
-    """Extracted text information."""
-    page_number: int
-    text: str
-    bbox: Optional[Dict[str, float]]
-
-
-@dataclass
-class PDFImage:
-    """Extracted image information."""
-    page_number: int
-    image_index: int
-    bbox: Dict[str, float]
-    size_bytes: int
-    format: str
-
-
-@dataclass
-class PDFLink:
-    """PDF link information."""
-    page_number: int
-    link_index: int
-    uri: str
-    bbox: Dict[str, float]
-    link_type: str
+def _ensure_pdfplumber():
+    if _pdfplumber_lib is None:
+        raise ImportError("pdfplumber is required. pip install pdfplumber")
+    return _pdfplumber_lib
 
 
 class PDFMCPServer(BaseMCPServer):
-    """PDF Processing MCP Server for advanced PDF manipulation."""
+    """PDF processing MCP server (PyMuPDF, PyPDF2, ReportLab)."""
+    _REQUIRED_EXTRAS = {"PyPDF2": "pdf", "fitz": "pdf", "pdfplumber": "pdf", "reportlab": "pdf"}
 
     def __init__(
         self,
@@ -160,29 +76,14 @@ class PDFMCPServer(BaseMCPServer):
         image_format: str = "png",
         host: str = "127.0.0.1",
         port: int = 8000,
-        transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
+        transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
         debug: bool = False,
         auto_register_tools: bool = True,
-        **base_kwargs
+        **base_kwargs,
     ):
-        """Initialize PDF Processing MCP Server.
-
-        Args:
-            default_output_dir: Default directory for output files
-            image_quality: Image quality for PDF to image conversion (1-100)
-            image_format: Default image format for conversion
-            host: Host to run MCP server on
-            port: Port to run MCP server on
-            transport: Transport type
-            debug: Enable debug mode
-            auto_register_tools: Automatically register tools
-            **base_kwargs: Additional arguments for BaseMCPServer
-        """
         self.default_output_dir = default_output_dir or os.path.join(os.getcwd(), "pdf_output")
         self.image_quality = image_quality
         self.image_format = image_format
-
-        # Ensure directories exist
         Path(self.default_output_dir).mkdir(parents=True, exist_ok=True)
 
         super().__init__(
@@ -216,30 +117,25 @@ class PDFMCPServer(BaseMCPServer):
                 pdf_path: Path to the PDF file
             """
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 with fitz.open(pdf_path) as doc:
                     metadata = doc.metadata
-
-                    info = PDFInfo(
-                        path=pdf_path,
-                        filename=os.path.basename(pdf_path),
-                        pages=len(doc),
-                        version=str(doc.version),
-                        encrypted=doc.is_encrypted,
-                        size_bytes=os.path.getsize(pdf_path),
-                        title=metadata.get('title'),
-                        author=metadata.get('author'),
-                        creator=metadata.get('creator'),
-                        producer=metadata.get('producer'),
-                        creation_date=metadata.get('creationDate'),
-                        modification_date=metadata.get('modDate')
-                    )
-
-                return {
-                    "success": True,
-                    "info": asdict(info)
-                }
+                    info = {
+                        "path": pdf_path,
+                        "filename": os.path.basename(pdf_path),
+                        "pages": len(doc),
+                        "version": str(doc.version),
+                        "encrypted": doc.is_encrypted,
+                        "size_bytes": os.path.getsize(pdf_path),
+                        "title": metadata.get("title"),
+                        "author": metadata.get("author"),
+                        "creator": metadata.get("creator"),
+                        "producer": metadata.get("producer"),
+                        "creation_date": metadata.get("creationDate"),
+                        "modification_date": metadata.get("modDate"),
+                    }
+                return {"success": True, "info": info}
             except Exception as e:
                 return {"error": str(e)}
 
@@ -247,7 +143,7 @@ class PDFMCPServer(BaseMCPServer):
         def check_pdf_accessibility(pdf_path: str) -> Dict[str, Any]:
             """Check PDF accessibility features."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 with fitz.open(pdf_path) as doc:
                     # Check basic accessibility features
@@ -290,7 +186,7 @@ class PDFMCPServer(BaseMCPServer):
                 output_path: Output text file path
             """
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 with fitz.open(pdf_path) as doc:
                     extracted_text = []
@@ -328,7 +224,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Extract text from specific page."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 with fitz.open(pdf_path) as doc:
                     if page_number < 1 or page_number > len(doc):
@@ -354,7 +250,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Extract images from PDF."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 if output_dir is None:
                     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -407,7 +303,7 @@ class PDFMCPServer(BaseMCPServer):
         def extract_links(pdf_path: str) -> Dict[str, Any]:
             """Extract hyperlinks from PDF."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 links = []
 
@@ -440,7 +336,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Extract tables from PDF using pdfplumber."""
             try:
-                pdfplumber = _import_pdfplumber()
+                pdfplumber = _ensure_pdfplumber()
 
                 tables = []
 
@@ -483,7 +379,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Convert PDF pages to images."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 if output_dir is None:
                     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -549,7 +445,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Convert images to PDF."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 if output_path is None:
                     output_path = os.path.join(self.default_output_dir, "images_to_pdf.pdf")
@@ -586,7 +482,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Merge multiple PDFs into one."""
             try:
-                PdfReader, PdfWriter = _import_pypdf2()
+                PdfReader, PdfWriter = _ensure_pypdf2()
 
                 if output_path is None:
                     output_path = os.path.join(self.default_output_dir, "merged.pdf")
@@ -617,7 +513,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Split PDF into individual pages."""
             try:
-                PdfReader, PdfWriter = _import_pypdf2()
+                PdfReader, PdfWriter = _ensure_pypdf2()
 
                 if output_dir is None:
                     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -656,7 +552,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Rotate specific pages in PDF."""
             try:
-                PdfReader, PdfWriter = _import_pypdf2()
+                PdfReader, PdfWriter = _ensure_pypdf2()
 
                 if output_path is None:
                     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -693,7 +589,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Encrypt PDF with password."""
             try:
-                PdfReader, PdfWriter = _import_pypdf2()
+                PdfReader, PdfWriter = _ensure_pypdf2()
 
                 if output_path is None:
                     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -728,7 +624,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Decrypt password-protected PDF."""
             try:
-                PdfReader, PdfWriter = _import_pypdf2()
+                PdfReader, PdfWriter = _ensure_pypdf2()
 
                 if output_path is None:
                     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -772,7 +668,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Add text watermark to PDF pages."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 if output_path is None:
                     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -821,31 +717,29 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Create PDF from text content."""
             try:
-                rl = _import_reportlab()
+                rl = _ensure_reportlab()
 
                 if output_path is None:
                     output_path = os.path.join(self.default_output_dir, "generated.pdf")
 
-                doc = rl['SimpleDocTemplate'](output_path, pagesize=rl['pagesizes']['A4'])
-                styles = rl['styles']()
+                doc = rl["doc"](output_path, pagesize=rl["pagesizes"]["A4"])
+                styles = rl["styles"]()
 
-                # Create story
                 story = []
 
                 if title:
-                    story.append(rl['Paragraph'](title, styles['Title']))
-                    story.append(rl['Spacer'](1, 0.25 * rl['inch']))
+                    story.append(rl["para"](title, styles["Title"]))
+                    story.append(rl["spacer"](1, 0.25 * rl["inch"]))
 
                 if author:
-                    story.append(rl['Paragraph'](f"Author: {author}", styles['Italic']))
-                    story.append(rl['Spacer'](1, 0.25 * rl['inch']))
+                    story.append(rl["para"](f"Author: {author}", styles["Italic"]))
+                    story.append(rl["spacer"](1, 0.25 * rl["inch"]))
 
-                # Split text into paragraphs
-                paragraphs = text_content.split('\n\n')
+                paragraphs = text_content.split("\n\n")
                 for para in paragraphs:
                     if para.strip():
-                        story.append(rl['Paragraph'](para, styles['Normal']))
-                        story.append(rl['Spacer'](1, 0.1 * rl['inch']))
+                        story.append(rl["para"](para, styles["Normal"]))
+                        story.append(rl["spacer"](1, 0.1 * rl["inch"]))
 
                 doc.build(story)
 
@@ -865,7 +759,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Create blank PDF with specified number of pages."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 if output_path is None:
                     output_path = os.path.join(self.default_output_dir, "blank.pdf")
@@ -906,7 +800,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Search for text in PDF."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 results = []
 
@@ -950,7 +844,7 @@ class PDFMCPServer(BaseMCPServer):
         ) -> Dict[str, Any]:
             """Add annotations to PDF."""
             try:
-                fitz = _import_fitz()
+                fitz = _ensure_fitz()
 
                 if output_path is None:
                     base_name = os.path.splitext(os.path.basename(pdf_path))[0]
@@ -991,60 +885,3 @@ class PDFMCPServer(BaseMCPServer):
                 }
             except Exception as e:
                 return {"error": str(e)}
-
-
-def main():
-    """Main entry point for the PDF Processing MCP Server."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="PDF Processing MCP Server")
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default=None,
-        help="Default output directory"
-    )
-    parser.add_argument(
-        "--transport",
-        type=str,
-        choices=["stdio", "sse", "streamable-http"],
-        default="stdio",
-        help="Transport protocol"
-    )
-    parser.add_argument(
-        "--host",
-        type=str,
-        default="127.0.0.1",
-        help="Host for SSE/HTTP transport"
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8000,
-        help="Port for SSE/HTTP transport"
-    )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug mode"
-    )
-
-    args = parser.parse_args()
-
-    server = PDFMCPServer(
-        default_output_dir=args.output_dir,
-        transport=args.transport,
-        host=args.host,
-        port=args.port,
-        debug=args.debug
-    )
-
-    print(f"Starting PDF Processing MCP Server")
-    print(f"Output directory: {args.output_dir or 'current_directory/pdf_output'}")
-    print(f"Transport: {args.transport}")
-
-    server.run()
-
-
-if __name__ == "__main__":
-    main()

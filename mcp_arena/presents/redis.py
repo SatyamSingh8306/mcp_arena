@@ -46,6 +46,7 @@ class RedisConnectionPoolConfig:
 
 class RedisMCPServer(BaseMCPServer):
     """Redis MCP Server for caching and data storage operations."""
+    _REQUIRED_EXTRAS = {"redis": "redis"}
     
     def __init__(
         self,

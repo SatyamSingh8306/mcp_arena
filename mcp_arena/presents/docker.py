@@ -101,6 +101,7 @@ class ContainerLogs:
 
 class DockerMCPServer(BaseMCPServer):
     """Docker MCP Server for container and image management."""
+    _REQUIRED_EXTRAS = {"docker": "docker"}
     
     def __init__(
         self,

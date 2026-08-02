@@ -117,12 +117,14 @@ class SearchResult:
 
 class ConfluenceMCPServer(BaseMCPServer):
     """Confluence MCP Server for Atlassian Confluence operations."""
+    _REQUIRED_EXTRAS = {"atlassian": "bitbucket", "html2text": "bitbucket"}
     
     def __init__(
         self,
         url: str,
         username: str,
-        password: str,
+        password: Optional[str] = None,
+        api_token: Optional[str] = None,
         cloud: bool = True,
         timeout: int = 60,
         verify_ssl: bool = True,
@@ -134,11 +136,12 @@ class ConfluenceMCPServer(BaseMCPServer):
         **base_kwargs
     ):
         """Initialize Confluence MCP Server.
-        
+
         Args:
             url: Confluence instance URL
             username: Confluence username
             password: Confluence password or API token
+            api_token: Alias for `password` (Atlassian Cloud API token).
             cloud: Use Confluence Cloud (True) or Server/Data Center (False)
             timeout: Request timeout in seconds
             verify_ssl: Verify SSL certificates
@@ -149,11 +152,12 @@ class ConfluenceMCPServer(BaseMCPServer):
             auto_register_tools: Automatically register tools on initialization
             **base_kwargs: Additional arguments for BaseMCPServer
         """
+        secret = password or api_token
         try:
             self.confluence_client = Confluence(
                 url=url,
                 username=username,
-                password=password,
+                password=secret,
                 cloud=cloud,
                 timeout=timeout,
                 verify_ssl=verify_ssl

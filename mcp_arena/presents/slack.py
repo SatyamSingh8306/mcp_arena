@@ -5,8 +5,9 @@ from dataclasses import dataclass, asdict, field
 from enum import Enum
 import os
 import json
-from slack_sdk import WebClient
+import slack_sdk
 from slack_sdk.errors import SlackApiError
+from slack_sdk import WebClient
 from mcp_arena.mcp.server import BaseMCPServer
 
 @dataclass
@@ -57,10 +58,12 @@ class SlackUserInfo:
 
 class SlackMCPServer(BaseMCPServer):
     """Slack MCP Server for interacting with Slack channels, messages, and users."""
+    _REQUIRED_EXTRAS = {"slack_sdk": "slack"}
     
     def __init__(
         self,
         token: Optional[str] = None,
+        bot_token: Optional[str] = None,
         host: str = "127.0.0.1",
         port: int = 8000,
         transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
@@ -69,9 +72,10 @@ class SlackMCPServer(BaseMCPServer):
         **base_kwargs
     ):
         """Initialize Slack MCP Server.
-        
+
         Args:
             token: Slack Bot User OAuth Token. If not provided, will try to get from SLACK_TOKEN env var.
+            bot_token: Alias for `token` (some clients prefer this name).
             host: Host to run server on
             port: Port to run server on
             transport: Transport type
@@ -79,15 +83,15 @@ class SlackMCPServer(BaseMCPServer):
             auto_register_tools: Automatically register tools on initialization
             **base_kwargs: Additional arguments for BaseMCPServer
         """
-        self.__token = token or os.getenv("SLACK_TOKEN")
-        if not self.__token:
+        self.bot_token = token or bot_token or os.getenv("SLACK_TOKEN")
+        if not self.bot_token:
             raise ValueError(
                 "Slack token is required. "
                 "Provide it as argument or set SLACK_TOKEN environment variable."
             )
-        
+
         # Initialize Slack client
-        self.client = WebClient(token=self.__token)
+        self.client = slack_sdk.WebClient(token=self.bot_token)
         
         # Initialize base class
         super().__init__(

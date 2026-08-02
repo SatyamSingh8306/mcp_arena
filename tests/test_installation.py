@@ -1,5 +1,7 @@
 """Test installation and package configuration."""
 
+import warnings
+
 import pytest
 import subprocess
 import sys
@@ -66,20 +68,21 @@ class TestOptionalDependencies:
 
     def test_core_dependencies_available(self):
         """Test core dependencies are available."""
-        core_deps = [
-            'mcp',
-            'python_dotenv',
-            'typing_extensions',
-            'psutil',
-            'langchain',
-            'langchain_core',
-            'typer',
-            'rich'
-        ]
-        
-        for dep in core_deps:
+        # Map: pip package name -> import name
+        core_deps = {
+            'mcp': 'mcp',
+            'python-dotenv': 'dotenv',
+            'typing-extensions': 'typing_extensions',
+            'psutil': 'psutil',
+            'langchain': 'langchain',
+            'langchain-core': 'langchain_core',
+            'typer': 'typer',
+            'rich': 'rich',
+        }
+
+        for dep, import_name in core_deps.items():
             try:
-                importlib.import_module(dep.replace('-', '_'))
+                importlib.import_module(import_name)
             except ImportError:
                 pytest.fail(f"Core dependency '{dep}' not available")
 
@@ -103,7 +106,7 @@ class TestOptionalDependencies:
             
             # At least one dependency should be available for each service
             if len(available_deps) == 0:
-                pytest.warn(f"No dependencies available for {service}: {deps}")
+                warnings.warn(f"No dependencies available for {service}: {deps}")
 
     def test_database_dependencies_groups(self):
         """Test database dependency groups."""
@@ -125,7 +128,7 @@ class TestOptionalDependencies:
             
             # At least one dependency should be available for each service
             if len(available_deps) == 0:
-                pytest.warn(f"No dependencies available for {service}: {deps}")
+                warnings.warn(f"No dependencies available for {service}: {deps}")
 
     def test_cloud_dependencies_groups(self):
         """Test cloud service dependency groups."""
@@ -150,7 +153,7 @@ class TestOptionalDependencies:
             
             # At least one dependency should be available for each service
             if len(available_deps) == 0:
-                pytest.warn(f"No dependencies available for {service}: {deps}")
+                warnings.warn(f"No dependencies available for {service}: {deps}")
 
 
 class TestInstallationCommands:
@@ -171,12 +174,12 @@ class TestInstallationCommands:
                 assert 'mcp_arena' in result.stdout
                 assert 'Version:' in result.stdout
             else:
-                pytest.warn(f"mcp_arena not installed via pip: {result.stderr}")
+                warnings.warn(f"mcp_arena not installed via pip: {result.stderr}")
                 
         except subprocess.TimeoutExpired:
-            pytest.warn("pip show command timed out")
+            warnings.warn("pip show command timed out")
         except Exception as e:
-            pytest.warn(f"Error running pip show: {e}")
+            warnings.warn(f"Error running pip show: {e}")
 
     def test_pip_list_contains_mcp_arena(self):
         """Test pip list contains mcp_arena."""
@@ -191,12 +194,12 @@ class TestInstallationCommands:
             if result.returncode == 0:
                 assert 'mcp_arena' in result.stdout.lower()
             else:
-                pytest.warn(f"pip list command failed: {result.stderr}")
+                warnings.warn(f"pip list command failed: {result.stderr}")
                 
         except subprocess.TimeoutExpired:
-            pytest.warn("pip list command timed out")
+            warnings.warn("pip list command timed out")
         except Exception as e:
-            pytest.warn(f"Error running pip list: {e}")
+            warnings.warn(f"Error running pip list: {e}")
 
     def test_package_entry_points(self):
         """Test package entry points are available."""
@@ -222,12 +225,12 @@ class TestInstallationCommands:
             if result.returncode == 0:
                 assert 'Usage:' in result.stdout or 'usage:' in result.stdout
             else:
-                pytest.warn(f"CLI command failed: {result.stderr}")
+                warnings.warn(f"CLI command failed: {result.stderr}")
                 
         except subprocess.TimeoutExpired:
-            pytest.warn("CLI command timed out")
+            warnings.warn("CLI command timed out")
         except Exception as e:
-            pytest.warn(f"Error running CLI command: {e}")
+            warnings.warn(f"Error running CLI command: {e}")
 
 
 class TestConfigurationFiles:
@@ -305,10 +308,6 @@ class TestInstallationIntegrity:
             'mcp_arena.mcp',
             'mcp_arena.mcp.server',
             'mcp_arena.agent',
-            'mcp_arena.agent.react',
-            'mcp_arena.agent.reflection',
-            'mcp_arena.agent.planning',
-            'mcp_arena.agent.router',
             'mcp_arena.presents',
             'mcp_arena.tools',
             'mcp_arena.cli'
@@ -327,7 +326,7 @@ class TestInstallationIntegrity:
         modules_to_test = [
             'mcp_arena',
             'mcp_arena.mcp.server',
-            'mcp_arena.agent.react',
+            'mcp_arena.agent',
             'mcp_arena.presents.github',
             'mcp_arena.tools.base'
         ]
@@ -392,7 +391,7 @@ class TestDocumentationInstallation:
                 except Exception as e:
                     pytest.fail(f"Error reading {doc_file}: {e}")
             else:
-                pytest.warn(f"Documentation file {doc_file} not found")
+                warnings.warn(f"Documentation file {doc_file} not found")
 
     def test_documentation_links_valid(self):
         """Test documentation links are valid."""
@@ -403,13 +402,13 @@ class TestDocumentationInstallation:
             try:
                 content = readme_path.read_text(encoding='utf-8')
                 
-                # Check for links to documentation files
+                # Check for links to documentation files (kept under docs/)
                 doc_links = [
-                    '[Installation Guide](INSTALLATION.md)',
-                    '[MCP Servers Guide](MCP_SERVERS_GUIDE.md)',
-                    '[Agent Guide](AGENT_GUIDE.md)',
-                    '[Tools Guide](TOOLS_GUIDE.md)',
-                    '[Quick Start](QUICKSTART.md)'
+                    '[Installation Guide](docs/INSTALLATION.md)',
+                    '[MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md)',
+                    '[Agent Guide](docs/AGENT_GUIDE.md)',
+                    '[Tools Guide](docs/TOOLS_GUIDE.md)',
+                    '[Quick Start](docs/QUICKSTART.md)',
                 ]
                 
                 for link in doc_links:

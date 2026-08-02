@@ -72,6 +72,7 @@ class NetworkInfo:
 
 class LocalOperationsMCPServer(BaseMCPServer):
     """Local Operations MCP Server for performing operations on the local computer."""
+    _REQUIRED_EXTRAS = {"psutil": "local_operation"}
     
     def __init__(
         self,

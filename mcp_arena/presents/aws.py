@@ -15,6 +15,7 @@ class S3ObjectInfo:
 
 class S3MCPServer(BaseMCPServer):
     """AWS S3 MCP Server for S3 bucket and object operations."""
+    _REQUIRED_EXTRAS = {"boto3": "cloudstorage"}
     
     def __init__(
         self,
@@ -23,6 +24,9 @@ class S3MCPServer(BaseMCPServer):
         aws_secret_access_key: Optional[str] = None,
         aws_session_token: Optional[str] = None,
         endpoint_url: Optional[str] = None,
+        access_key_id: Optional[str] = None,
+        secret_access_key: Optional[str] = None,
+        region: Optional[str] = None,
         host: str = "127.0.0.1",
         port: int = 8000,
         transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
@@ -31,13 +35,16 @@ class S3MCPServer(BaseMCPServer):
         **base_kwargs
     ):
         """Initialize S3 MCP Server.
-        
+
         Args:
             region_name: AWS region name (defaults to AWS default region)
             aws_access_key_id: AWS access key ID
             aws_secret_access_key: AWS secret access key
             aws_session_token: AWS session token
             endpoint_url: Custom S3 endpoint URL (for local/minio)
+            access_key_id: Alias for `aws_access_key_id`.
+            secret_access_key: Alias for `aws_secret_access_key`.
+            region: Alias for `region_name`.
             host: Host to run server on
             port: Port to run server on
             transport: Transport type
@@ -45,13 +52,16 @@ class S3MCPServer(BaseMCPServer):
             auto_register_tools: Automatically register tools on initialization
             **base_kwargs: Additional arguments for BaseMCPServer
         """
+        access_key_id = aws_access_key_id or access_key_id
+        secret_access_key = aws_secret_access_key or secret_access_key
+        region_name = region_name or region
         # Initialize S3 client with provided credentials or use AWS default
         session_params = {}
         if region_name:
             session_params['region_name'] = region_name
-        if aws_access_key_id and aws_secret_access_key:
-            session_params['aws_access_key_id'] = aws_access_key_id
-            session_params['aws_secret_access_key'] = aws_secret_access_key
+        if access_key_id and secret_access_key:
+            session_params['aws_access_key_id'] = access_key_id
+            session_params['aws_secret_access_key'] = secret_access_key
             if aws_session_token:
                 session_params['aws_session_token'] = aws_session_token
         

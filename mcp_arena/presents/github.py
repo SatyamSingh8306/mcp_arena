@@ -119,6 +119,7 @@ class FileContent:
 
 class GithubMCPServer(BaseMCPServer):
     """GitHub MCP Server for managing repositories, issues, pull requests, and more."""
+    _REQUIRED_EXTRAS = {"github": "github"}
     
     def __init__(
         self,

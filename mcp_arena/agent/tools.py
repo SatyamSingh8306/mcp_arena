@@ -1,66 +1,136 @@
-from typing import Any, Dict, List, Optional
-from .interfaces import IAgentTool
+"""Agent-side tool registry.
 
-# Import tools from new location
-from mcp_arena.tools.agent_tool import BaseTool
-from mcp_arena.tools.search import SearchTool
-from mcp_arena.tools.calculator import CalculatorTool
-from mcp_arena.tools.filesystem import FileSystemTool
-from mcp_arena.tools.web import WebTool
-from mcp_arena.tools.data_analysis import DataAnalysisTool
-from mcp_arena.tools.time_tool import TimeTool
+`ToolRegistry` discovers tools exposed by MCP servers (via
+`BaseMCPServer._registered_tools`), lets the user inspect them, drop
+or rename them, and hand a customized subset to an agent.
+
+Ponytail: the only built-in tool class kept here is `BaseTool` — it
+exists so users can subclass it when they want to add a non-MCP tool
+to their agent. The legacy CalculatorTool/FilesystemTool/etc. presets
+were removed; MCP servers cover those use cases.
+"""
+from dataclasses import dataclass, field
+from typing import Any, Callable, Dict, List, Optional
+
+
+@dataclass
+class ToolSpec:
+    """Inspectable description of one tool, with a callable to invoke it."""
+
+    name: str
+    description: str
+    source: str  # MCP server name, or "custom" for user-defined tools
+    function: Callable[..., Any]
+    parameters: Dict[str, Any] = field(default_factory=dict)
+
+    def to_openai(self) -> Dict[str, Any]:
+        """Format as an OpenAI function-calling schema."""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters or {"type": "object", "properties": {}},
+            },
+        }
+
+
+class BaseTool:
+    """Base class for user-defined (non-MCP) tools.
+
+    Subclass and implement `execute`. Register with `ToolRegistry.register`.
+    """
+
+    def __init__(self, name: str, description: str, parameters: Optional[Dict[str, Any]] = None):
+        self.name = name
+        self.description = description
+        self.parameters = parameters or {"type": "object", "properties": {}}
+
+    def execute(self, **kwargs) -> Any:
+        raise NotImplementedError
+
+    def to_spec(self) -> ToolSpec:
+        return ToolSpec(
+            name=self.name,
+            description=self.description,
+            source="custom",
+            function=self.execute,
+            parameters=self.parameters,
+        )
+
 
 class ToolRegistry:
-    """Registry for managing available tools"""
-    
+    """Discover, filter, and format tools before handing them to an agent."""
+
     def __init__(self):
-        self._tools: Dict[str, type] = {}
-        self._instances: Dict[str, IAgentTool] = {}
-    
-    def register_tool(self, name: str, tool_class: type) -> None:
-        """Register a tool class"""
-        self._tools[name] = tool_class
-    
-    def create_tool(self, name: str, **kwargs) -> IAgentTool:
-        """Create an instance of a registered tool"""
-        if name not in self._tools:
-            raise ValueError(f"Tool '{name}' not registered")
-        
-        tool_instance = self._tools[name](**kwargs)
-        self._instances[name] = tool_instance
-        return tool_instance
-    
-    def get_tool(self, name: str) -> Optional[IAgentTool]:
-        """Get an existing tool instance"""
-        return self._instances.get(name)
-    
-    def list_tools(self) -> List[str]:
-        """List all registered tool names"""
-        return list(self._tools.keys())
-    
-    def create_default_tools(self) -> List[IAgentTool]:
-        """Create a set of default tools"""
-        tools = [
-            CalculatorTool(),
-            FileSystemTool(),
-            WebTool(),
-            DataAnalysisTool(),
-            TimeTool()
-        ]
-        
-        # Store instances
-        for tool in tools:
-            self._instances[tool.name] = tool
-        
-        return tools
+        self._tools: Dict[str, ToolSpec] = {}
+
+    # -------- discovery --------
+    def register_server(self, server) -> "ToolRegistry":
+        """Pull every `_registered_tools` entry off a BaseMCPServer instance."""
+        source = getattr(server, "name", server.__class__.__name__)
+        for tool_name, tool_func in getattr(server, "_registered_tools", {}).items():
+            self._tools[tool_name] = ToolSpec(
+                name=tool_name,
+                description=(getattr(tool_func, "__doc__", "") or "").strip().split("\n")[0]
+                or f"Tool: {tool_name}",
+                source=source,
+                function=tool_func,
+                parameters={"type": "object", "properties": {}},
+            )
+        return self
+
+    def register(self, tool: BaseTool, name: Optional[str] = None) -> "ToolRegistry":
+        """Add a user-defined tool (subclass of BaseTool)."""
+        spec = tool.to_spec()
+        if name:
+            spec.name = name
+        self._tools[spec.name] = spec
+        return self
+
+    # -------- filtering --------
+    def keep(self, *names: str) -> "ToolRegistry":
+        """Drop everything except the named tools. Returns self for chaining."""
+        keep = set(names)
+        self._tools = {n: t for n, t in self._tools.items() if n in keep}
+        return self
+
+    def drop(self, *names: str) -> "ToolRegistry":
+        """Remove the named tools. Returns self for chaining."""
+        for n in names:
+            self._tools.pop(n, None)
+        return self
+
+    def rename(self, old: str, new: str) -> "ToolRegistry":
+        """Rename a tool in-place. Returns self for chaining."""
+        if old in self._tools:
+            self._tools[new] = self._tools.pop(old)
+            self._tools[new].name = new
+        return self
+
+    def from_source(self, source: str) -> "ToolRegistry":
+        """Drop everything not from the given MCP server. Returns self."""
+        self._tools = {n: t for n, t in self._tools.items() if t.source == source}
+        return self
+
+    # -------- output --------
+    def names(self) -> List[str]:
+        return sorted(self._tools)
+
+    def list(self) -> List[ToolSpec]:
+        return [self._tools[n] for n in self.names()]
+
+    def to_openai(self) -> List[Dict[str, Any]]:
+        """Format all current tools as OpenAI function-calling schemas."""
+        return [t.to_openai() for t in self.list()]
+
+    def get_callables(self) -> Dict[str, Callable[..., Any]]:
+        """Return `{name: function}` for handing to a LangChain/etc. agent."""
+        return {n: self._tools[n].function for n in self.names()}
 
 
-# Global tool registry instance
+# Singleton convenience: `from mcp_arena.agent.tools import tool_registry`
 tool_registry = ToolRegistry()
 
-# Register default tools
-tool_registry.register_tool("calculator", CalculatorTool)
-tool_registry.register_tool("filesystem", FileSystemTool)
-tool_registry.register_tool("web", WebTool)
-tool_registry.register_tool("data_analysis", DataAnalysisTool)
-tool_registry.register_tool("time", TimeTool)
+
+__all__ = ["BaseTool", "ToolRegistry", "ToolSpec", "tool_registry"]

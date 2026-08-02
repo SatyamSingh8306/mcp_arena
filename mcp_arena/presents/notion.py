@@ -55,6 +55,7 @@ class NotionBlockInfo:
 
 class NotionMCPServer(BaseMCPServer):
     """Notion MCP Server for interacting with Notion databases, pages, and blocks."""
+    _REQUIRED_EXTRAS = {"notion_client": "notion"}
     
     def __init__(
         self,
@@ -207,5 +208,6 @@ class NotionMCPServer(BaseMCPServer):
                 }
             except APIResponseError as e:
                 return {"error": f"Failed to search: {str(e)}"}
+
 
 

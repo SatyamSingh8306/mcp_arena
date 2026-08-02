@@ -1,143 +1,65 @@
-"""
-Video Editing MCP Server
-A comprehensive video editing server using MoviePy and FFmpeg for advanced video
-manipulation, effects, transitions, and format conversion.
-"""
-from typing import Optional, Dict, Any, List, Literal, Union, Tuple
-from dataclasses import dataclass, asdict
-from datetime import datetime
-from enum import Enum
+"""Video editing MCP server (MoviePy + FFmpeg)."""
 import os
-import json
+import shutil
 import subprocess
 from pathlib import Path
+from typing import Any, Dict, List, Literal, Optional, Tuple
+
 from mcp_arena.mcp.server import BaseMCPServer
 
-# Lazy imports
-_moviepy = None
-_ImageClip = None
-_VideoFileClip = None
-_AudioFileClip = None
-_CompositeVideoClip = None
-_concatenate_videoclips = None
-_ColorClip = None
-_TextClip = None
+try:
+    from moviepy.editor import (
+        ImageClip as _ImageClip,
+        VideoFileClip as _VideoFileClip,
+        AudioFileClip as _AudioFileClip,
+        CompositeVideoClip as _CompositeVideoClip,
+        concatenate_videoclips as _concatenate_videoclips,
+        ColorClip as _ColorClip,
+        TextClip as _TextClip,
+    )
+except ImportError:
+    _ImageClip = _VideoFileClip = _AudioFileClip = None
+    _CompositeVideoClip = _concatenate_videoclips = _ColorClip = _TextClip = None
+
+try:
+    from moviepy.video.fx import all as _vfx
+except ImportError:
+    _vfx = None
+
+try:
+    import numpy as _np
+except ImportError:
+    _np = None
 
 
-def _import_moviepy():
-    """Lazily import moviepy modules."""
-    global _moviepy, _ImageClip, _VideoFileClip, _AudioFileClip
-    global _CompositeVideoClip, _concatenate_videoclips, _ColorClip, _TextClip
-
-    if _moviepy is None:
-        try:
-            from moviepy.editor import (
-                ImageClip, VideoFileClip, AudioFileClip,
-                CompositeVideoClip, concatenate_videoclips,
-                ColorClip, TextClip
-            )
-            _ImageClip = ImageClip
-            _VideoFileClip = VideoFileClip
-            _AudioFileClip = AudioFileClip
-            _CompositeVideoClip = CompositeVideoClip
-            _concatenate_videoclips = concatenate_videoclips
-            _ColorClip = ColorClip
-            _TextClip = TextClip
-            _moviepy = True
-        except ImportError:
-            raise ImportError(
-                "moviepy is required for VideoMCPServer. "
-                "Install it with: pip install moviepy"
-            )
-    return True
+# ponytail: these dict lookups replace the deleted `Resolution`/`TransitionType`
+# enums; avoids re-creating strings each call.
+_RESOLUTIONS = {
+    "480p": (854, 480),
+    "720p": (1280, 720),
+    "1080p": (1920, 1080),
+    "1440p": (2560, 1440),
+    "4k": (3840, 2160),
+}
 
 
-class VideoFormat(str, Enum):
-    """Video format enumeration."""
-    MP4 = "mp4"
-    AVI = "avi"
-    MOV = "mov"
-    WEBM = "webm"
-    MKV = "mkv"
-    GIF = "gif"
+def _ensure_moviepy():
+    if _VideoFileClip is None:
+        raise ImportError("moviepy is required. pip install moviepy")
+    if _np is None:
+        raise ImportError("numpy is required. pip install numpy")
+    return _VideoFileClip
 
-
-class AudioFormat(str, Enum):
-    """Audio format enumeration."""
-    MP3 = "mp3"
-    WAV = "wav"
-    AAC = "aac"
-    OGG = "ogg"
-    FLAC = "flac"
-
-
-class Resolution(str, Enum):
-    """Video resolution presets."""
-    SD_480 = "480p"  # 854x480
-    HD_720 = "720p"  # 1280x720
-    FULL_HD_1080 = "1080p"  # 1920x1080
-    QHD_1440 = "1440p"  # 2560x1440
-    UHD_4K = "4k"  # 3840x2160
-
-
-class TransitionType(str, Enum):
-    """Transition types for video clips."""
-    FADE_IN = "fadein"
-    FADE_OUT = "fadeout"
-    CROSSFADE = "crossfade"
-    SLIDE_LEFT = "slide_left"
-    SLIDE_RIGHT = "slide_right"
-    ZOOM_IN = "zoom_in"
-    ZOOM_OUT = "zoom_out"
-
-
-@dataclass
-class VideoInfo:
-    """Video file information."""
-    path: str
-    filename: str
-    duration: float
-    fps: float
-    width: int
-    height: int
-    resolution: str
-    aspect_ratio: float
-    has_audio: bool
-    audio_fps: Optional[int]
-    audio_channels: Optional[int]
-    size_bytes: int
-    format: str
-    bitrate: Optional[int]
-
-
-@dataclass
-class EditOperation:
-    """Video edit operation result."""
-    operation: str
-    success: bool
-    input_file: str
-    output_file: Optional[str]
-    duration: float
-    message: str
-    timestamp: str
-
-
-@dataclass
-class SubtitleEntry:
-    """Subtitle entry."""
-    index: int
-    start_time: float
-    end_time: float
-    text: str
 
 
 class VideoMCPServer(BaseMCPServer):
     """Video Editing MCP Server for advanced video manipulation."""
+    _REQUIRED_EXTRAS = {"moviepy": "video", "numpy": "video"}
 
     def __init__(
         self,
         default_output_dir: Optional[str] = None,
-        default_format: VideoFormat = VideoFormat.MP4,
+        default_format: str = "mp4",
         default_fps: int = 30,
         default_codec: str = "libx264",
         default_audio_codec: str = "aac",
@@ -174,35 +96,23 @@ class VideoMCPServer(BaseMCPServer):
         self.default_audio_codec = default_audio_codec
         self.ffmpeg_path = ffmpeg_path or "ffmpeg"
         self.temp_dir = temp_dir or os.path.join(os.getcwd(), "video_temp")
-
-        # Ensure directories exist
         Path(self.default_output_dir).mkdir(parents=True, exist_ok=True)
         Path(self.temp_dir).mkdir(parents=True, exist_ok=True)
-
-        # Store active clips for multi-step editing
         self._active_clips: Dict[str, Any] = {}
 
         super().__init__(
             name="Video Editing MCP Server",
-            description="MCP server for advanced video editing, effects, transitions, and format conversion using MoviePy and FFmpeg",
+            description="MCP server for video editing (MoviePy + FFmpeg)",
             host=host,
             port=port,
             transport=transport,
             debug=debug,
             auto_register_tools=auto_register_tools,
-            **base_kwargs
+            **base_kwargs,
         )
 
-    def _get_resolution(self, preset: Resolution) -> Tuple[int, int]:
-        """Get resolution dimensions from preset."""
-        resolutions = {
-            Resolution.SD_480: (854, 480),
-            Resolution.HD_720: (1280, 720),
-            Resolution.FULL_HD_1080: (1920, 1080),
-            Resolution.QHD_1440: (2560, 1440),
-            Resolution.UHD_4K: (3840, 2160)
-        }
-        return resolutions[preset]
+    def _get_resolution(self, preset: str) -> Tuple[int, int]:
+        return _RESOLUTIONS.get(preset, _RESOLUTIONS["1080p"])
 
     def _run_ffmpeg(self, args: List[str]) -> Dict[str, Any]:
         """Run FFmpeg command."""
@@ -212,13 +122,13 @@ class VideoMCPServer(BaseMCPServer):
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=600  # 10 minute timeout
+                timeout=600,
             )
             return {
                 "success": result.returncode == 0,
                 "returncode": result.returncode,
                 "stdout": result.stdout,
-                "stderr": result.stderr
+                "stderr": result.stderr,
             }
         except subprocess.TimeoutExpired:
             return {"success": False, "error": "FFmpeg command timed out"}
@@ -249,32 +159,28 @@ class VideoMCPServer(BaseMCPServer):
                 video_path: Path to the video file
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(video_path)
 
-                info = VideoInfo(
-                    path=video_path,
-                    filename=os.path.basename(video_path),
-                    duration=clip.duration,
-                    fps=clip.fps,
-                    width=clip.w,
-                    height=clip.h,
-                    resolution=f"{clip.w}x{clip.h}",
-                    aspect_ratio=clip.w / clip.h if clip.h > 0 else 0,
-                    has_audio=clip.audio is not None,
-                    audio_fps=clip.audio.fps if clip.audio else None,
-                    audio_channels=clip.audio.nchannels if clip.audio else None,
-                    size_bytes=os.path.getsize(video_path),
-                    format=os.path.splitext(video_path)[1][1:],
-                    bitrate=None  # Would need ffprobe for accurate bitrate
-                )
+                info = {
+                    "path": video_path,
+                    "filename": os.path.basename(video_path),
+                    "duration": clip.duration,
+                    "fps": clip.fps,
+                    "width": clip.w,
+                    "height": clip.h,
+                    "resolution": f"{clip.w}x{clip.h}",
+                    "aspect_ratio": clip.w / clip.h if clip.h > 0 else 0,
+                    "has_audio": clip.audio is not None,
+                    "audio_fps": clip.audio.fps if clip.audio else None,
+                    "audio_channels": clip.audio.nchannels if clip.audio else None,
+                    "size_bytes": os.path.getsize(video_path),
+                    "format": os.path.splitext(video_path)[1][1:],
+                    "bitrate": None,
+                }
 
                 clip.close()
-
-                return {
-                    "success": True,
-                    "info": asdict(info)
-                }
+                return {"success": True, "info": info}
             except Exception as e:
                 return {"error": str(e)}
 
@@ -326,7 +232,7 @@ class VideoMCPServer(BaseMCPServer):
                 bitrate: Video bitrate (e.g., '5M' for 5 Mbps)
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -375,7 +281,7 @@ class VideoMCPServer(BaseMCPServer):
                 quality: Quality preset (low, medium, high)
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -437,7 +343,7 @@ class VideoMCPServer(BaseMCPServer):
                 maintain_aspect_ratio: Maintain aspect ratio
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -447,7 +353,7 @@ class VideoMCPServer(BaseMCPServer):
                         f"{base_name}_{resolution}.mp4"
                     )
 
-                target_width, target_height = self._get_resolution(Resolution(resolution))
+                target_width, target_height = self._get_resolution(resolution)
 
                 if maintain_aspect_ratio:
                     current_ratio = clip.w / clip.h
@@ -502,7 +408,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if end_time > clip.duration:
@@ -550,7 +456,7 @@ class VideoMCPServer(BaseMCPServer):
                 method: Concatenation method (compose, concat)
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clips = [_VideoFileClip(path) for path in video_paths]
 
                 if output_path is None:
@@ -609,7 +515,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_prefix: Prefix for output files
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_prefix is None:
@@ -661,7 +567,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -705,7 +611,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -748,7 +654,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -792,7 +698,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -840,7 +746,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -891,8 +797,8 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
-                from moviepy.video.fx import all as vfx
+                _ensure_moviepy()
+                from moviepy.video.fx import all as _vfx
 
                 clip = _VideoFileClip(input_path)
 
@@ -905,11 +811,11 @@ class VideoMCPServer(BaseMCPServer):
 
                 # Apply effects
                 if brightness != 1.0:
-                    clip = clip.fx(vfx.brightness, brightness)
+                    clip = clip.fx(_vfx.brightness, brightness)
                 if contrast != 1.0:
-                    clip = clip.fx(vfx.contrast, contrast)
+                    clip = clip.fx(_vfx.contrast, contrast)
                 if saturation != 1.0:
-                    clip = clip.fx(vfx.saturation, saturation)
+                    clip = clip.fx(_vfx.saturation, saturation)
 
                 clip.write_videofile(
                     output_path,
@@ -944,8 +850,8 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
-                from moviepy.video.fx import all as vfx
+                _ensure_moviepy()
+                from moviepy.video.fx import all as _vfx
 
                 clip = _VideoFileClip(input_path)
 
@@ -956,7 +862,7 @@ class VideoMCPServer(BaseMCPServer):
                         f"{base_name}_blurred.mp4"
                     )
 
-                blurred = clip.fx(vfx.blur, blur_strength)
+                blurred = clip.fx(_vfx.blur, blur_strength)
                 blurred.write_videofile(
                     output_path,
                     codec=self.default_codec,
@@ -987,8 +893,8 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
-                from moviepy.video.fx import all as vfx
+                _ensure_moviepy()
+                from moviepy.video.fx import all as _vfx
 
                 clip = _VideoFileClip(input_path)
 
@@ -999,7 +905,7 @@ class VideoMCPServer(BaseMCPServer):
                         f"{base_name}_bw.mp4"
                     )
 
-                bw_clip = clip.fx(vfx.blackwhite)
+                bw_clip = clip.fx(_vfx.blackwhite)
                 bw_clip.write_videofile(
                     output_path,
                     codec=self.default_codec,
@@ -1031,7 +937,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 import numpy as np
 
                 clip = _VideoFileClip(input_path)
@@ -1090,7 +996,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 import numpy as np
 
                 clip = _VideoFileClip(input_path)
@@ -1160,7 +1066,7 @@ class VideoMCPServer(BaseMCPServer):
                 audio_bitrate: Audio bitrate
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if clip.audio is None:
@@ -1202,7 +1108,7 @@ class VideoMCPServer(BaseMCPServer):
                 volume: Audio volume multiplier
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 video = _VideoFileClip(video_path)
                 audio = _AudioFileClip(audio_path)
 
@@ -1261,7 +1167,7 @@ class VideoMCPServer(BaseMCPServer):
                 fade_out: Music fade out duration
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 video = _VideoFileClip(video_path)
                 music = _AudioFileClip(music_path)
 
@@ -1325,7 +1231,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -1367,7 +1273,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if clip.audio is None:
@@ -1425,7 +1331,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -1498,7 +1404,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -1581,7 +1487,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if output_path is None:
@@ -1651,7 +1557,7 @@ class VideoMCPServer(BaseMCPServer):
                 transition: Transition type (fadein, crossfade)
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 from PIL import Image
                 import numpy as np
 
@@ -1661,7 +1567,7 @@ class VideoMCPServer(BaseMCPServer):
                         "slideshow.mp4"
                     )
 
-                target_width, target_height = self._get_resolution(Resolution(resolution))
+                target_width, target_height = self._get_resolution(resolution)
 
                 clips = []
                 for img_path in image_paths:
@@ -1730,7 +1636,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 main = _VideoFileClip(main_video)
                 overlay = _VideoFileClip(overlay_video)
 
@@ -1801,7 +1707,7 @@ class VideoMCPServer(BaseMCPServer):
                 output_path: Output file path
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 import numpy as np
                 from PIL import Image
 
@@ -1890,7 +1796,7 @@ class VideoMCPServer(BaseMCPServer):
                 scale: Scale factor
             """
             try:
-                _import_moviepy()
+                _ensure_moviepy()
                 clip = _VideoFileClip(input_path)
 
                 if end_time is None:
@@ -1980,59 +1886,3 @@ class VideoMCPServer(BaseMCPServer):
             except Exception as e:
                 return {"error": str(e)}
 
-
-def main():
-    """Main entry point for the Video Editing MCP Server."""
-    import argparse
-
-    parser = argparse.ArgumentParser(description="Video Editing MCP Server")
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default=None,
-        help="Default output directory"
-    )
-    parser.add_argument(
-        "--transport",
-        type=str,
-        choices=["stdio", "sse", "streamable-http"],
-        default="stdio",
-        help="Transport protocol"
-    )
-    parser.add_argument(
-        "--host",
-        type=str,
-        default="127.0.0.1",
-        help="Host for SSE/HTTP transport"
-    )
-    parser.add_argument(
-        "--port",
-        type=int,
-        default=8000,
-        help="Port for SSE/HTTP transport"
-    )
-    parser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable debug mode"
-    )
-
-    args = parser.parse_args()
-
-    server = VideoMCPServer(
-        default_output_dir=args.output_dir,
-        transport=args.transport,
-        host=args.host,
-        port=args.port,
-        debug=args.debug
-    )
-
-    print(f"Starting Video Editing MCP Server")
-    print(f"Output directory: {args.output_dir or 'current_directory/video_output'}")
-    print(f"Transport: {args.transport}")
-
-    server.run()
-
-
-if __name__ == "__main__":
-    main()

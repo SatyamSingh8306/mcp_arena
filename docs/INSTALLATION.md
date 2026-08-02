@@ -1,224 +1,155 @@
-# Installation Guide
+# Installation
 
-## Quick Start
+## What `pip install mcp-arena` ships today
 
-### Install Core Library
-```bash
-pip install mcp_arena[core]
+The core package includes three general-purpose MCP server presets so you can run a real MCP server with zero extra setup:
+
+| Preset | Class | Why it's in core |
+| ------ | ----- | ----------------- |
+| Local operations | `LocalOperationsMCPServer` | file / system / process tools — uses `psutil` + `pyautogui` |
+| Generic API | `GenericAPIMCPServer` | make any HTTP API call — uses `httpx` |
+| SMTP | `SMTPServer` | send email via any SMTP server — pure stdlib |
+
+Plus: `BaseMCPServer`, the lazy `mcp_arena.presents` loader, `make_mcp_agent`, `ToolRegistry`, `BaseTool`, and the `mcp-arena` CLI.
+
+Everything else is gated behind an extra. If you try to instantiate a gated preset without its extra, you get a clear `ImportError` pointing at the install command:
+
+```
+PyPDF2, fitz, pdfplumber and reportlab are required for this MCP server but are not installed.
+Install it with:    pip install "mcp-arena[pdf]"
 ```
 
-### Install with Specific MCP Server
-Each MCP server preset can be installed separately using extras:
+## What to install
 
-#### Development Platforms
+| What you want                                          | Install                                            |
+| ------------------------------------------------------ | -------------------------------------------------- |
+| Just the core (3 presets + base classes + CLI)         | `pip install mcp-arena`                            |
+| One extra preset                                       | `pip install "mcp-arena[<extra>]"`                 |
+| Several presets                                        | `pip install "mcp-arena[github,slack,postgres]"`   |
+| Every preset (heavy)                                   | `pip install "mcp-arena[all]"`                     |
+| The LangChain `make_mcp_agent` bridge                  | `pip install "mcp-arena[agents]"` plus your LLM provider (e.g. `langchain-openai`) |
+| All presets + dev tooling                              | `pip install "mcp-arena[complete]"`                |
+
+## Available extras
+
+`mcp_arena` ships an extra for every preset or group. The three presets in core (`local_operation`, `generic_api`, `smtp`) keep their old extra names as no-op aliases for back-compat.
+
+| Extra                              | What you get                                                                        |
+| ---------------------------------- | ----------------------------------------------------------------------------------- |
+| `mcp-arena[github]`                | GitHub preset + `PyGithub`                                                         |
+| `mcp-arena[gitlab]`                | GitLab preset + `python-gitlab`                                                    |
+| `mcp-arena[bitbucket]`             | Bitbucket preset + `atlassian-python-api` (also covers `jira`, `confluence`)        |
+| `mcp-arena[postgres]`              | PostgreSQL preset + `psycopg2-binary`                                              |
+| `mcp-arena[mongodb]`               | MongoDB preset + `pymongo`                                                         |
+| `mcp-arena[redis]`                 | Redis preset + `redis`                                                              |
+| `mcp-arena[docker]`                | Docker preset + `docker`                                                           |
+| `mcp-arena[kubernetes]`            | Kubernetes preset + `kubernetes`                                                    |
+| `mcp-arena[local_operation]`       | (no-op alias — preset is in core)                                                  |
+| `mcp-arena[browser]`               | Browser preset + `playwright`, `opencv-python`, `pillow`                            |
+| `mcp-arena[image]`                 | Image preset + `pillow`, `opencv-python`                                            |
+| `mcp-arena[video]`                 | Video preset + `moviepy`, `numpy`                                                  |
+| `mcp-arena[audio]`                 | Audio preset + `pydub`, `librosa`, `numpy`                                          |
+| `mcp-arena[pdf]`                   | PDF preset + `PyMuPDF`, `PyPDF2`, `reportlab`, `pdfplumber`                         |
+| `mcp-arena[qrcode]`                | QR-code preset + `qrcode[pil]`, `Pillow`                                            |
+| `mcp-arena[webscraping]`           | Web-scraping preset + `requests`, `beautifulsoup4`, `selenium`                      |
+| `mcp-arena[spreadsheet]`           | Spreadsheet preset + `pandas`, `openpyxl`                                           |
+| `mcp-arena[screencapture]`         | Screen-capture preset + `pyautogui` (already in core; alias is a no-op)              |
+| `mcp-arena[cloudstorage]`          | Cloud-storage preset + `boto3`, `google-cloud-storage`                              |
+| `mcp-arena[generic_api]`           | (no-op alias — preset is in core)                                                  |
+| `mcp-arena[vectordb]`              | Vector-DB preset + `chromadb`, `sentence-transformers`                              |
+
+### Communication extras
+
+| Extra                  | What you get                                                    |
+| ---------------------- | --------------------------------------------------------------- |
+| `mcp-arena[gmail]`     | `google-auth*`, `google-api-python-client`                      |
+| `mcp-arena[outlook]`   | `msal`                                                           |
+| `mcp-arena[slack]`     | `slack-sdk`                                                      |
+| `mcp-arena[whatsapp]`  | `twilio`                                                         |
+| `mcp-arena[email]`     | `mcp-arena[gmail,outlook]`                                       |
+| `mcp-arena[messaging]` | `mcp-arena[slack,whatsapp]`                                      |
+| `mcp-arena[communication]` | `mcp-arena[gmail,outlook,slack,whatsapp]`                   |
+| `mcp-arena[mail]`      | `mcp-arena[gmail,outlook]` (used by `MailMCPServer` / `SMTPMCPServer`) |
+| `mcp-arena[notification]` | `mcp-arena[communication]`                                    |
+
+### Agents & AI
+
+| Extra                  | What you get                                                    |
+| ---------------------- | --------------------------------------------------------------- |
+| `mcp-arena[agents]`    | `langchain>=1.0,<2.0`, `langchain-mcp-adapters>=0.1,<1.0`      |
+
+> Install your LLM provider separately: `langchain-openai`, `langchain-anthropic`, `langchain-groq`, etc.
+
+### Bundles
+
+| Extra                  | What you get                                                    |
+| ---------------------- | --------------------------------------------------------------- |
+| `mcp-arena[all]`       | every preset + the agents extra                                 |
+| `mcp-arena[complete]`  | `mcp-arena[all,dev]` (adds pytest, black, ruff, mypy, pre-commit) |
+| `mcp-arena[dev]`       | pytest, pytest-asyncio, black, isort, ruff, mypy, pre-commit    |
+
+## Examples
+
 ```bash
-# GitHub MCP Server
-pip install mcp_arena[github]
+# Core (no extras) — three general-purpose presets work out of the box
+pip install mcp-arena
 
-# GitLab MCP Server
-pip install mcp_arena[gitlab]
+# Add GitHub
+pip install "mcp-arena[github]"
 
-# Bitbucket MCP Server
-pip install mcp_arena[bitbucket]
-```
+# Several presets at once
+pip install "mcp-arena[github,slack,whatsapp]"
 
-#### Data & Storage
-```bash
-# PostgreSQL MCP Server
-pip install mcp_arena[postgres]
+# Everything
+pip install "mcp-arena[all]"
 
-# MongoDB MCP Server
-pip install mcp_arena[mongodb]
-
-# Redis MCP Server
-pip install mcp_arena[redis]
-
-# Vector Database MCP Server
-pip install mcp_arena[vectordb]
-```
-
-#### Communication Platforms
-```bash
-# Slack MCP Server
-pip install mcp_arena[slack]
-
-# WhatsApp MCP Server
-pip install mcp_arena[whatsapp]
-
-# Discord MCP Server
-pip install mcp_arena[discord]
-
-# Microsoft Teams MCP Server
-pip install mcp_arena[teams]
-```
-
-#### Email Services
-```bash
-# Gmail MCP Server
-pip install mcp_arena[gmail]
-
-# Outlook MCP Server
-pip install mcp_arena[outlook]
-
-# All Email Services
-pip install mcp_arena[email]
-```
-
-#### Messaging Services
-```bash
-# Slack MCP Server
-pip install mcp_arena[slack]
-
-# WhatsApp MCP Server
-pip install mcp_arena[whatsapp]
-
-# All Messaging Services
-pip install mcp_arena[messaging]
-```
-
-#### All Communication Services
-```bash
-# Install all communication services (Gmail, Outlook, Slack, WhatsApp)
-pip install mcp_arena[communication]
-```
-
-#### Productivity Tools
-```bash
-# Notion MCP Server
-pip install mcp_arena[notion]
-
-# Confluence MCP Server
-pip install mcp_arena[confluence]
-
-# Jira MCP Server
-pip install mcp_arena[jira]
-```
-
-#### Cloud Services
-```bash
-# AWS MCP Server
-pip install mcp_arena[aws]
-
-# Azure MCP Server
-pip install mcp_arena[azure]
-
-# Google Cloud MCP Server
-pip install mcp_arena[gcp]
-```
-
-#### System Operations
-```bash
-# Local Operations MCP Server
-pip install mcp_arena[local_operation]
-
-# Docker MCP Server
-pip install mcp_arena[docker]
-
-# Kubernetes MCP Server
-pip install mcp_arena[kubernetes]
-```
-
-#### Agent Framework
-```bash
-# Agent dependencies (for using agents)
-pip install mcp_arena[agents]
-```
-
-### Install All Presets
-```bash
-# All MCP server presets (no dev dependencies)
-pip install mcp_arena[all]
-
-# Complete installation (includes dev tools)
-pip install mcp_arena[complete]
-```
-
-### Install from Source
-```bash
-git clone https://github.com/mcp_arena/mcp_arena.git
+# Develop the library locally
+git clone https://github.com/SatyamSingh8306/mcp_arena
 cd mcp_arena
-pip install -e .
+pip install -e ".[complete]"
 ```
 
-### Development Installation
+## Python version
+
+Requires Python 3.12+ (`langchain` 1.x and `chromadb` 1.x both need it).
+
+## Verification
+
 ```bash
-# Install with development dependencies
-pip install -e .[complete]
+# 1. Core is installed
+python -c "import mcp_arena; print(mcp_arena.__version__)"
 
-# Or install core + dev tools only
-pip install -e .[core,dev]
+# 2. The three core presets work without any extra
+python -c "
+from mcp_arena.presents.local_operation import LocalOperationsMCPServer
+from mcp_arena.presents.generic_api import GenericAPIMCPServer
+from mcp_arena.presents.smtp import SMTPServer
+print('LocalOperationsMCPServer:', len(LocalOperationsMCPServer().get_registered_tools()), 'tools')
+print('GenericAPIMCPServer:', len(GenericAPIMCPServer().get_registered_tools()), 'tools')
+print('SMTPServer:', len(SMTPServer(smtp_host='localhost').get_registered_tools()), 'tools')
+"
+
+# 3. A gated preset without the extra gives a clear error
+python -c "
+from mcp_arena.presents.pdf import PDFMCPServer
+PDFMCPServer()
+"
+# expected:
+#   ImportError: PyPDF2, fitz, pdfplumber and reportlab are required for this MCP server
+#   but are not installed.
+#   Install it with:    pip install "mcp-arena[pdf]"
+
+# 4. Install the extra and retry
+pip install "mcp-arena[pdf]"
+python -c "from mcp_arena.presents.pdf import PDFMCPServer; print(len(PDFMCPServer().get_registered_tools()), 'tools')"
 ```
 
-## Configuration
+## "What package do I need for `<preset>`?" 
 
-1. Copy `.env.example` to `.env`:
-```bash
-cp .env.example .env
-```
-
-2. Update `.env` with your credentials:
-```env
-# For GitHub MCP
-GITHUB_TOKEN=your_github_token
-
-# For Slack MCP
-SLACK_BOT_TOKEN=your_slack_token
-
-# For Notion MCP
-NOTION_API_KEY=your_notion_key
-
-# etc.
-```
-
-## Running Your First MCP Server
+If you forget, ask the preset — every preset declares `_REQUIRED_EXTRAS`:
 
 ```python
-from mcp_arena.mcp.server import BaseMCPServer
-from mcp_arena.presets.github import GithubMCPServer
-
-# Create GitHub MCP Server
-server = GithubMCPServer(token="your_token")
-
-# Start the server
-server.run()
+from mcp_arena.presents.whatsapp import WhatsAppMCPServer
+print(WhatsAppMCPServer._REQUIRED_EXTRAS)
+# -> {'twilio': 'whatsapp'}
 ```
-
-## Testing Installation
-
-```bash
-python -c "from mcp_arena import BaseMCPServer; print('✓ mcp_arena installed successfully')"
-```
-
-## Troubleshooting
-
-### Missing Dependencies
-If you get import errors, make sure you installed the correct optional dependencies:
-
-```bash
-# For GitHub
-pip install mcp_arena[github]
-
-# For agents
-pip install mcp_arena[agents]
-
-# For all presets
-pip install mcp_arena[all]
-```
-
-### Python Version
-Ensure you're using Python 3.12 or higher:
-```bash
-python --version
-```
-
-### Import Errors
-If you encounter import errors, try installing the core dependencies first:
-```bash
-pip install mcp_arena[core]
-```
-
-## Next Steps
-
-- Read the [README.md](README.md) for core concepts
-- Check out examples in the `examples/` directory
-- See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines

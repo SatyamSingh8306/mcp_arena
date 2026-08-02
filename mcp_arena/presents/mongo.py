@@ -37,6 +37,7 @@ from mcp_arena.mcp.server import BaseMCPServer
 
 class MongoDBMCPServer(BaseMCPServer):
     """MongoDB MCP Server for interacting with MongoDB databases and collections."""
+    _REQUIRED_EXTRAS = {"bson": "mongodb", "pymongo": "mongodb"}
     
     def __init__(
         self,
@@ -46,10 +47,11 @@ class MongoDBMCPServer(BaseMCPServer):
         transport: Literal['stdio', 'sse', 'streamable-http'] = "stdio",
         debug: bool = False,
         auto_register_tools: bool = True,
+        database: Optional[str] = None,
         **base_kwargs
     ):
         """Initialize MongoDB MCP Server.
-        
+
         Args:
             connection_string: MongoDB connection string. If not provided, will try to get from MONGODB_CONNECTION_STRING env var.
             host: Host to run server on
@@ -57,6 +59,7 @@ class MongoDBMCPServer(BaseMCPServer):
             transport: Transport type
             debug: Enable debug mode
             auto_register_tools: Automatically register tools on initialization
+            database: Default database name (optional metadata for tools).
             **base_kwargs: Additional arguments for BaseMCPServer
         """
         self.connection_string = connection_string or os.getenv("MONGODB_CONNECTION_STRING")
@@ -65,6 +68,7 @@ class MongoDBMCPServer(BaseMCPServer):
                 "MongoDB connection string is required. "
                 "Provide it as argument or set MONGODB_CONNECTION_STRING environment variable."
             )
+        self.database = database
         
         # Initialize MongoDB client
         self.client = MongoClient(self.connection_string)
@@ -271,3 +275,4 @@ class MongoDBMCPServer(BaseMCPServer):
                 }
             except (PyMongoError, json.JSONDecodeError) as e:
                 return {"error": f"Failed to insert document: {str(e)}"}
+
