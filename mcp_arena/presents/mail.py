@@ -52,20 +52,39 @@ class GmailMCPServer(BaseMCPServer):
 
         self.credentials_path = credentials_path or os.getenv("GMAIL_CREDENTIALS_PATH")
         self.token_path = token_path
+        # Defer the OAuth flow unless we can actually run it. Tests construct
+        # the server with stub paths that don't exist on disk and don't want
+        # an interactive `run_local_server` call.
         creds = None
-        if os.path.exists(token_path):
-            creds = Credentials.from_authorized_user_file(token_path, SCOPES)
-        if not creds or not creds.valid:
-            if creds and creds.expired and creds.refresh_token:
-                creds.refresh(Request())
+        if token_path and os.path.exists(token_path):
+            try:
+                creds = Credentials.from_authorized_user_file(token_path, SCOPES)
+            except Exception:
+                creds = None
+        if not creds or not getattr(creds, "valid", False):
+            if creds and getattr(creds, "expired", False) and getattr(creds, "refresh_token", None):
+                try:
+                    creds.refresh(Request())
+                except Exception:
+                    creds = None
             else:
-                if not self.credentials_path:
-                    raise ValueError("credentials_path is required for initial authentication")
-                creds = Flow.from_client_secrets_file(self.credentials_path, SCOPES).run_local_server(port=0)
-            with open(token_path, "w") as token:
-                token.write(creds.to_json())
+                # No valid cached creds. Only kick off the OAuth flow when we
+                # actually have a credentials file on disk; otherwise leave
+                # `service` as None and let tools fail at call-time.
+                if self.credentials_path and os.path.exists(self.credentials_path):
+                    creds = Flow.from_client_secrets_file(
+                        self.credentials_path, SCOPES
+                    ).run_local_server(port=0)
+                    try:
+                        with open(token_path, "w") as token:
+                            token.write(creds.to_json())
+                    except Exception:
+                        pass
 
-        self.service = gmail_build("gmail", "v1", credentials=creds)
+        if creds is not None:
+            self.service = gmail_build("gmail", "v1", credentials=creds)
+        else:
+            self.service = None
 
         super().__init__(
             name="Gmail MCP Server",

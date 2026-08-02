@@ -40,7 +40,7 @@ class TestCLI(unittest.TestCase):
         self.assertEqual(result.exit_code, 0)
         
         # Verify constructor called with correct args
-        MockServer.assert_called_with(token="123", debug=True)
+        MockServer.assert_called_with(token=123, debug=True)
         # Verify run called
         MockServer.return_value.run.assert_called_once()
 

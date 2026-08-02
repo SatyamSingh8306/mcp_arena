@@ -26,6 +26,7 @@ class WhatsAppMCPServer(BaseMCPServer):
         account_sid: Optional[str] = None,
         auth_token: Optional[str] = None,
         whatsapp_number: Optional[str] = None,
+        from_number: Optional[str] = None,
         host: str = "127.0.0.1",
         port: int = 8000,
         transport: Literal["stdio", "sse", "streamable-http"] = "stdio",
@@ -35,7 +36,11 @@ class WhatsAppMCPServer(BaseMCPServer):
     ):
         self.account_sid = account_sid or os.getenv("TWILIO_ACCOUNT_SID")
         self.auth_token = auth_token or os.getenv("TWILIO_AUTH_TOKEN")
-        self.whatsapp_number = whatsapp_number or os.getenv("TWILIO_WHATSAPP_NUMBER")
+        self.whatsapp_number = (
+            whatsapp_number or from_number or os.getenv("TWILIO_WHATSAPP_NUMBER")
+        )
+        # Public alias used by some clients/tests.
+        self.from_number = self.whatsapp_number
 
         if not (self.account_sid and self.auth_token and self.whatsapp_number):
             raise ValueError("Twilio credentials and WhatsApp number are required")
