@@ -1,0 +1,58 @@
+name: "✨ Feature Request"
+description: Suggest a new feature or enhancement for mcp_arena
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have an idea to improve mcp_arena? We'd love to hear it! Please describe your feature request below.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: Is your feature request related to a problem? Describe it clearly.
+      placeholder: "I'm always frustrated when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the solution or feature you'd like.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative approaches?
+    validations:
+      required: false
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of mcp_arena does this relate to?
+      options:
+        - MCP Server (BaseMCPServer, presets)
+        - Agent (ReAct, Reflection, Planning)
+        - Tools (built-in tools)
+        - Wrapper (LangChain, agent wrapper)
+        - CLI
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Any other context, mockups, or examples that help explain the feature.
+    validations:
+      required: false
