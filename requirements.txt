@@ -45,3 +45,7 @@ google-api-python-client
 msal
 requests
 twilio
+
+# CLI
+typer
+rich
