@@ -23,7 +23,8 @@ class TestImports:
     @pytest.mark.parametrize("server_name", [
         "github", "gitlab", "bitbucket", "docker", "postgres", 
         "mongo", "redis", "slack", "jira", "notion", "confluence",
-        "aws", "local_operation", "vectordb", "mail", "outlook", "whatsapp"
+        "aws", "local_operation", "vectordb", "mail", "outlook", "whatsapp", "sentry",
+        "context7",
     ])
     def test_mcp_server_imports(self, server_name):
         """Test that all MCP servers can be imported."""

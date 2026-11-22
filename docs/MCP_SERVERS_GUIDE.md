@@ -107,6 +107,16 @@ Each preset adds its own kwargs (credentials, output dirs, default formats, etc.
 | Redis                        | `RedisMCPServer`              | `mcp-arena[redis]`                |
 | VectorDB (Chroma)            | `VectorDBMCPServer`           | `mcp-arena[vectordb]`             |
 
+### Monitoring
+| Preset                       | Class                         | Requires                          | Notes |
+| ---------------------------- | ----------------------------- | --------------------------------- | ----- |
+| Sentry                       | `SentryMCPServer`             | `mcp-arena[sentry]`               | read-only projects, issues, and recent issue events |
+
+### AI / documentation
+| Preset                       | Class                         | Requires                          | Notes |
+| ---------------------------- | ----------------------------- | --------------------------------- | ----- |
+| Context7                     | `Context7MCPServer`           | `mcp-arena[context7]`             | live, version-specific library docs; `resolve_library_id` / `query_docs` / `search_docs`; optional `CONTEXT7_API_KEY` |
+
 ### Cloud
 | Preset                       | Class                         | Requires                          |
 | ---------------------------- | ----------------------------- | --------------------------------- |

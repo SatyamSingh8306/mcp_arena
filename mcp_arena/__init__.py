@@ -18,7 +18,7 @@ except ImportError:
 from dotenv import load_dotenv
 load_dotenv()
 
-__version__ = "0.4.1"
+__version__ = "0.5.0"
 __author__ = "Satyam Singh"
 __license__ = "MIT"
 

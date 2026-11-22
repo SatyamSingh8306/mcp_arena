@@ -26,11 +26,13 @@ if __name__ == "__main__":
 
 Any MCP client can now talk to it. The full preset list, constructor kwargs, and `BaseMCPServer` surface are in [`MCP_SERVERS_GUIDE.md`](docs/MCP_SERVERS_GUIDE.md). The LangChain-agent bridge is at the bottom of this README — read after you've understood the server side.
 
+> **0.5.0 release:** added the **`Context7MCPServer`** preset — live, version-specific library docs for LLMs (currently one of the hottest MCP integrations). See [Available presets](#available-presets).
+>
 > **0.4.0 release:** the old `ReflectionAgent` / `ReactAgent` / `PlanningAgent` / policies / memory / router stack is gone. The agent subsystem is now one function: `make_mcp_agent`. Migration guide in [`CHANGELOG.md`](CHANGELOG.md).
 
 ## Why mcp_arena?
 
-- **30+ ready-to-run MCP server presets.** Slack, GitHub, Notion, Gmail, PostgreSQL, Mongo, Redis, S3, browsers, video, audio, PDFs, QR codes, webscraping, and more — install one extra, import one class, call `server.run()`. Any MCP-compatible client can talk to it.
+- **30+ ready-to-run MCP server presets.** Slack, GitHub, Notion, Gmail, PostgreSQL, Mongo, Redis, S3, browsers, video, audio, PDFs, QR codes, webscraping, **Context7** (live library docs), and more — install one extra, import one class, call `server.run()`. Any MCP-compatible client can talk to it.
 - **Each preset is a real `BaseMCPServer`.** Tools register at construction, are exposed on `_registered_tools` for inspection, and the server can be started over stdio / SSE / HTTP in one call.
 - **Lazy-loaded presets.** `mcp_arena.presents.__init__` AST-scans the directory; importing one preset doesn't pull in unrelated deps.
 - **Drop-in extension.** New MCP server? Write a `*Server` subclass in `mcp_arena/presents/<name>.py`; it's auto-discovered.
@@ -164,6 +166,21 @@ Every preset is one extra. Install what you need; nothing else gets pulled in.
 
 ### Data & storage
 `postgres`, `mongo`, `redis`, `vectordb`
+
+### Monitoring
+`sentry` — read-only project, issue, and event investigation
+
+### AI / documentation
+`context7` — current, version-specific library docs and code examples (fixes stale / hallucinated APIs)
+
+```python
+from mcp_arena.presents.context7 import Context7MCPServer
+
+# CONTEXT7_API_KEY is optional — without it the public rate limits apply.
+server = Context7MCPServer()  # or Context7MCPServer(api_key="ctx7sk_…")
+server.run()
+# Tools: resolve_library_id, query_docs, search_docs
+```
 
 ### Cloud / OS
 `aws` (S3), `cloudstorage`, `docker`, `local_operation`, `screencapture`

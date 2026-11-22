@@ -35,7 +35,7 @@ Install it with:    pip install "mcp-arena[pdf]"
 
 ## What ships today — 30+ presets
 
-The lazy loader in `mcp_arena.presents` AST-scans the package directory and exports every class whose name ends in `Server`. Concretely, as of `0.4.0`:
+The lazy loader in `mcp_arena.presents` AST-scans the package directory and exports every class whose name ends in `Server`. Concretely, as of `0.5.0`:
 
 | # | Module | Class | Extra to install |
 | - | ------ | ----- | ----------------- |
@@ -60,22 +60,24 @@ The lazy loader in `mcp_arena.presents` AST-scans the package directory and expo
 | 15 | `mongo`        | `MongoDBMCPServer`       | `mcp-arena[mongodb]` |
 | 16 | `redis`        | `RedisMCPServer`         | `mcp-arena[redis]` |
 | 17 | `vectordb`     | `VectorDBMCPServer`      | `mcp-arena[vectordb]` |
+| **AI / documentation** | | | |
+| 18 | `context7`     | `Context7MCPServer`      | `mcp-arena[context7]` |
 | **Cloud / OS** | | | |
-| 18 | `aws`          | `S3MCPServer`            | `mcp-arena[cloudstorage]` |
-| 19 | `cloudstorage` | `CloudStorageMCPServer`  | `mcp-arena[cloudstorage]` |
-| 20 | `docker`       | `DockerMCPServer`        | `mcp-arena[docker]` |
-| 21 | `local_operation` | `LocalOperationsMCPServer` | `mcp-arena[local_operation]` |
-| 22 | `screencapture` | `ScreenCaptureMCPServer` | `mcp-arena[screencapture]` |
+| 19 | `aws`          | `S3MCPServer`            | `mcp-arena[cloudstorage]` |
+| 20 | `cloudstorage` | `CloudStorageMCPServer`  | `mcp-arena[cloudstorage]` |
+| 21 | `docker`       | `DockerMCPServer`        | `mcp-arena[docker]` |
+| 22 | `local_operation` | `LocalOperationsMCPServer` | `mcp-arena[local_operation]` |
+| 23 | `screencapture` | `ScreenCaptureMCPServer` | `mcp-arena[screencapture]` |
 | **Browser / web / media** | | | |
-| 23 | `browser`      | `BrowserMCPServer`       | `mcp-arena[browser]` |
-| 24 | `webscraping`  | `WebScrapingMCPServer`   | `mcp-arena[webscraping]` |
-| 25 | `generic_api`  | `GenericAPIMCPServer`    | `mcp-arena[generic_api]` |
-| 26 | `image`        | `ImageMCPServer`         | `mcp-arena[image]` |
-| 27 | `video`        | `VideoMCPServer`         | `mcp-arena[video]` |
-| 28 | `audio`        | `AudioMCPServer`         | `mcp-arena[audio]` |
-| 29 | `pdf`          | `PDFMCPServer`           | `mcp-arena[pdf]` |
-| 30 | `qrcode`       | `QRCodeMCPServer`        | `mcp-arena[qrcode]` |
-| 31 | `spreadsheet`  | `SpreadsheetMCPServer`   | `mcp-arena[spreadsheet]` |
+| 24 | `browser`      | `BrowserMCPServer`       | `mcp-arena[browser]` |
+| 25 | `webscraping`  | `WebScrapingMCPServer`   | `mcp-arena[webscraping]` |
+| 26 | `generic_api`  | `GenericAPIMCPServer`    | `mcp-arena[generic_api]` |
+| 27 | `image`        | `ImageMCPServer`         | `mcp-arena[image]` |
+| 28 | `video`        | `VideoMCPServer`         | `mcp-arena[video]` |
+| 29 | `audio`        | `AudioMCPServer`         | `mcp-arena[audio]` |
+| 30 | `pdf`          | `PDFMCPServer`           | `mcp-arena[pdf]` |
+| 31 | `qrcode`       | `QRCodeMCPServer`        | `mcp-arena[qrcode]` |
+| 32 | `spreadsheet`  | `SpreadsheetMCPServer`   | `mcp-arena[spreadsheet]` |
 
 > Drop a new `<your_preset>.py` in `mcp_arena/presents/` and it appears in this list automatically — see [`MCP_SERVERS_GUIDE.md`](MCP_SERVERS_GUIDE.md#custom) for the recipe.
 
@@ -195,6 +197,7 @@ Most presets accept credentials as **constructor kwargs** *or* **environment var
 | `mongo`         | `MONGODB_CONNECTION_STRING` |
 | `redis`         | (constructor kwargs — host/port/password) |
 | `vectordb`      | (constructor kwargs; OpenAI uses `OPENAI_API_KEY` for embeddings) |
+| `context7`      | `CONTEXT7_API_KEY` (optional — public rate limits apply without it) |
 | `aws`           | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` |
 | `cloudstorage`  | `GCS_PROJECT_ID`, `GCS_BUCKET_NAME`, `GOOGLE_APPLICATION_CREDENTIALS` |
 | `docker`        | (reads Docker socket / config) |
@@ -276,6 +279,19 @@ pip install "mcp-arena[postgres]"
 pip install "mcp-arena[mongodb]"
 pip install "mcp-arena[redis]"
 pip install "mcp-arena[vectordb]"   # chromadb + sentence-transformers (heavy)
+```
+
+### AI / documentation
+
+```bash
+pip install "mcp-arena[context7]"       # httpx (live library docs for LLMs)
+```
+```python
+from mcp_arena.presents.context7 import Context7MCPServer
+
+server = Context7MCPServer()            # picks up CONTEXT7_API_KEY if set
+server.run()
+# resolve_library_id → query_docs, or search_docs for a one-shot lookup
 ```
 
 ### Cloud / OS

@@ -2,6 +2,61 @@
 
 All notable changes to `mcp_arena` are documented here. Versions follow [SemVer](https://semver.org/). This project is pre-1.0; breaking changes may land in minor versions.
 
+## [0.5.0] — 2026-11-22 (upcoming release)
+
+**Headline: two new MCP server presets land in this release — `SentryMCPServer` and
+`Context7MCPServer`.** This is an additive, backwards-compatible minor update: the
+two more ready-to-run presets are discoverable via the CLI/lazy loader, and no existing preset changes behavior.
+
+### Added
+
+#### 1. `SentryMCPServer` (`mcp_arena.presents.sentry`)
+Read-only investigation of production errors inside Sentry. Why it is in demand:
+error monitoring is one of the most common things an agent needs to touch, and a
+**read-only** tool set is safe to hand to an LLM — it gives the agent stack traces,
+affected releases, breadcrumbs and issue context without any write access to
+production. Sentry's own hosted MCP crossed ~417k package downloads in 30 days
+(Sept 2026), which reflects how central "give the agent production context" has
+become to modern debugging workflows. This preset brings that workflow into
+`mcp_arena` with a plain API token instead of requiring the hosted OAuth service.
+
+Tools registered:
+- `list_projects` — list projects in the configured organization.
+- `search_issues` — search issues with a Sentry query (`is:unresolved` by default), optional project scope, and a result limit clamped to 1–100.
+- `get_issue` — details for one issue ID.
+- `list_issue_events` — recent events for an issue over a configurable `statsPeriod` (default `24h`).
+
+Auth: `auth_token` / `SENTRY_AUTH_TOKEN` plus `organization` / `SENTRY_ORG`
+(both required, with clear errors if missing). Uses `httpx` and the `mcp-arena[sentry]`
+extra; supports all standard transports and self-hosted Sentry via `base_url`.
+
+#### 2. `Context7MCPServer` (`mcp_arena.presents.context7`)
+Live, version-specific library documentation for LLMs. Why it is in demand:
+Context7 is consistently ranked in the top three MCP servers in 2026 and is one
+of the most widely adopted integrations in tools like Claude Code and Cursor. It
+fixes the single biggest source of agent mistakes — stale training data and
+hallucinated APIs — by fetching current docs and code examples at inference time.
+It was the notable gap in `mcp_arena`'s preset lineup.
+
+Tools registered:
+- `resolve_library_id` — map a library name to a Context7 ID such as `/vercel/next.js` (`GET /api/v2/libs/search`).
+- `query_docs` — retrieve docs/code for a known ID (or a plain name, auto-resolved), with optional language and version-pinned IDs (`GET /api/v2/context`).
+- `search_docs` — one-shot search where Context7 picks the libraries, with up to four hints (`GET /api/v3/search`).
+
+Auth: `api_key` / `CONTEXT7_API_KEY` is **optional** — without it the public rate
+limits apply. Uses `httpx` and the `mcp-arena[context7]` extra. Handles
+`404 no_documentation_found` as an empty result and bounds output with
+`max_snippets` so large docs do not swamp the model's context.
+
+#### Tests & packaging
+- `tests/test_sentry.py` verifies the configured token, org, and bound limits.
+- `tests/test_context7.py` (8 tests) covers tool registration, auth handling, endpoint/params wiring, name resolution, hint bounding, and error handling.
+- Both `sentry` and `context7` are included in the import and `_REQUIRED_EXTRAS` parametrized suites; both extras are in `mcp-arena[all]`.
+
+### Changed
+- Version bumped to `0.5.0` across `pyproject.toml`, `mcp_arena.__version__`, and the CLI `about` output; the CLI feature count now reads "30+ presets".
+- `context7` added to the keywords in `pyproject.toml`.
+
 ## [0.4.1] — 2026-08-01
 
 ### Removed
