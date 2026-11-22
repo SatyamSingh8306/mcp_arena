@@ -24,13 +24,6 @@ classifiers = [
     "Operating System :: OS Independent"
 ]
 
-# ------------------------
-# Core dependencies
-# ------------------------
-# Everything `pip install mcp-arena` ships with. The general-purpose MCP
-# server presets (local_operation, generic_api, smtp) are intentionally
-# included in core so a fresh install can actually run an MCP server
-# without any extra. Everything else is gated behind extras.
 dependencies = [
     "mcp>=1.25,<2.0",
     "python-dotenv>=1.0,<2.0",
@@ -45,9 +38,6 @@ dependencies = [
     "httpx>=0.27",
 ]
 
-# ------------------------
-# Optional Dependencies
-# ------------------------
 [project.optional-dependencies]
 
 # Communication
@@ -110,14 +100,6 @@ local_operation = [
     "psutil>=7.2,<8.0",
     "pyautogui>=0.9,<1.0"
 ]
-
-# ------------------------
-# MCP SERVERS (NEW)
-# ------------------------
-# Note: `local_operation`, `generic_api`, and `smtp` are part of core deps
-# (pip install mcp-arena installs them by default). Their previous `[extra]`
-# blocks are kept as no-op aliases so existing `mcp-arena[local_operation]`
-# / `mcp-arena[generic_api]` install commands still work.
 
 browser = [
     "playwright>=1.45",
@@ -185,16 +167,13 @@ context7 = [
     "httpx>=0.27",
 ]
 
-# generic_api moved to core deps — kept as a no-op alias for back-compat.
 generic_api = []
 
 mail = [
     "mcp_arena[gmail,outlook]"
 ]
 
-# ------------------------
-# Dev
-# ------------------------
+
 dev = [
     "pytest>=8.0,<9.0",
     "pytest-asyncio>=0.23,<1.0",
@@ -205,9 +184,6 @@ dev = [
     "pre-commit>=3.5,<4.0"
 ]
 
-# ------------------------
-# Bundles
-# ------------------------
 all = [
     "mcp_arena[agents,vectordb,github,gitlab,bitbucket,postgres,mongodb,redis,docker,kubernetes,communication,sentry,context7]",
     "mcp_arena[browser,image,video,audio,pdf,qrcode,webscraping,spreadsheet,notification,screencapture,cloudstorage,mail]",
@@ -217,30 +193,18 @@ complete = [
     "mcp_arena[all,dev]"
 ]
 
-# ------------------------
-# CLI
-# ------------------------
 [project.scripts]
 mcp_arena = "mcp_arena.cli:app"
 mcp-arena = "mcp_arena.cli:app"
 
-# ------------------------
-# URLs
-# ------------------------
 [project.urls]
 Homepage = "https://github.com/SatyamSingh8306/mcp_arena"
 Repository = "https://github.com/SatyamSingh8306/mcp_arena"
 Issues = "https://github.com/SatyamSingh8306/mcp_arena/issues"
 
-# ------------------------
-# Hatch Build
-# ------------------------
 [tool.hatch.build.targets.wheel]
 packages = ["mcp_arena"]
 
-# ------------------------
-# Tooling
-# ------------------------
 [tool.black]
 line-length = 100
 target-version = ["py312"]
