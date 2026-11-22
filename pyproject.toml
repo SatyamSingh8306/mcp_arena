@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp_arena"
-version = "0.4.1"
+version = "0.5.0"
 description = "An opinionated Python library for building MCP (Model Context Protocol) servers with presets and a one-line bridge to LangChain agents."
 readme = "README.md"
 requires-python = ">=3.12"
@@ -14,7 +14,7 @@ authors = [
     { name = "Satyam Singh", email = "satyamsingh7734@gmail.com" }
 ]
 
-keywords = ["mcp", "model-context-protocol", "agents", "ai", "llm"]
+keywords = ["mcp", "model-context-protocol", "agents", "ai", "llm", "context7", "documentation"]
 
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -177,6 +177,14 @@ cloudstorage = [
     "google-cloud-storage>=2.16",
 ]
 
+sentry = [
+    "httpx>=0.27",
+]
+
+context7 = [
+    "httpx>=0.27",
+]
+
 # generic_api moved to core deps — kept as a no-op alias for back-compat.
 generic_api = []
 
@@ -201,7 +209,7 @@ dev = [
 # Bundles
 # ------------------------
 all = [
-    "mcp_arena[agents,vectordb,github,gitlab,bitbucket,postgres,mongodb,redis,docker,kubernetes,communication]",
+    "mcp_arena[agents,vectordb,github,gitlab,bitbucket,postgres,mongodb,redis,docker,kubernetes,communication,sentry,context7]",
     "mcp_arena[browser,image,video,audio,pdf,qrcode,webscraping,spreadsheet,notification,screencapture,cloudstorage,mail]",
 ]
 

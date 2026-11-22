@@ -83,7 +83,7 @@ COMPANY_INFO = {
     "documentation": "https://mcparena.vercel.app/docs",
     "community": "https://github.com/SatyamSingh8306/mcp_arena/discussions",
     "issues": "https://github.com/SatyamSingh8306/mcp_arena/issues",
-    "version": "0.3.1",
+    "version": "0.5.0",
     "license": "MIT",
     "author": "Satyam Singh",
     "tagline": "Build. Deploy. Orchestrate."
@@ -296,7 +296,7 @@ def show_about():
     
     # Key features
     features = [
-        "[+] 17+ Production-ready MCP server presets",
+        "[+] 30+ Production-ready MCP server presets",
         "[+] 4 Intelligent agent types (Reflection, ReAct, Planning, Router)",
         "[+] Zero-configuration setup for common use cases",
         "[+] Extensible SOLID architecture",

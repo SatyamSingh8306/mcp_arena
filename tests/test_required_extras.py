@@ -49,7 +49,7 @@ class TestPresetStamps:
         "docker", "generic_api", "github", "gitlab", "image", "jira",
         "local_operation", "mail", "mongo", "notification", "notion", "outlook",
         "pdf", "postgres", "qrcode", "redis", "screencapture", "slack", "smtp",
-        "spreadsheet", "vectordb", "video", "webscraping", "whatsapp",
+        "spreadsheet", "sentry", "context7", "vectordb", "video", "webscraping", "whatsapp",
     ])
     def test_preset_has_required_extras_attr(self, module):
         import importlib

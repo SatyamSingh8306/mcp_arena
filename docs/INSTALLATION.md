@@ -57,6 +57,7 @@ Install it with:    pip install "mcp-arena[pdf]"
 | `mcp-arena[cloudstorage]`          | Cloud-storage preset + `boto3`, `google-cloud-storage`                              |
 | `mcp-arena[generic_api]`           | (no-op alias — preset is in core)                                                  |
 | `mcp-arena[vectordb]`              | Vector-DB preset + `chromadb`, `sentence-transformers`                              |
+| `mcp-arena[context7]`              | Context7 preset + `httpx` — live library docs (`CONTEXT7_API_KEY` optional)         |
 
 ### Communication extras
 
