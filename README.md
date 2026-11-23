@@ -32,7 +32,7 @@ pip install "mcp-arena[all]"
 pip install "mcp-arena[agents]" langchain-openai
 ```
 
-Constructing a preset without its extra raises an `ImportError` containing the exact install command. See [Installation](docs/INSTALLATION.md) for the full extras table.
+Constructing a preset without its extra raises an `ImportError` containing the exact install command. See [Installation Guide](docs/INSTALLATION.md) for the full extras table.
 
 ## Quick start
 
@@ -187,7 +187,7 @@ See [MCP Servers](docs/MCP_SERVERS.md) for the full preset table, required extra
 
 ## Documentation
 
-- [Installation](docs/INSTALLATION.md) — extras reference and verification steps
+- [Installation Guide](docs/INSTALLATION.md) — extras reference and verification steps
 - [Quick Start](docs/QUICKSTART.md) — short walkthrough
 - [MCP Servers](docs/MCP_SERVERS.md) — presets, extras, credentials, CLI
 - [MCP Servers Guide](docs/MCP_SERVERS_GUIDE.md) — `BaseMCPServer` and custom presets
