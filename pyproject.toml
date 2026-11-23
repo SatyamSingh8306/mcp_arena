@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "mcp_arena"
 version = "0.5.0"
-description = "An opinionated Python library for building MCP (Model Context Protocol) servers with presets and a one-line bridge to LangChain agents."
+description = "A Python library for building Model Context Protocol (MCP) servers with ready-to-run presets."
 readme = "README.md"
 requires-python = ">=3.12"
 license = { text = "MIT" }
@@ -88,6 +88,7 @@ vectordb = [
 github = ["PyGithub>=2.8,<3.0"]
 gitlab = ["python-gitlab>=7.0,<8.0"]
 bitbucket = ["atlassian-python-api>=4.0,<5.0"]
+notion = ["notion-client>=2.7,<3.0"]
 
 postgres = ["psycopg2-binary>=2.9,<3.0"]
 mongodb = ["pymongo>=4.6,<5.0"]
@@ -185,7 +186,7 @@ dev = [
 ]
 
 all = [
-    "mcp_arena[agents,vectordb,github,gitlab,bitbucket,postgres,mongodb,redis,docker,kubernetes,communication,sentry,context7]",
+    "mcp_arena[agents,vectordb,github,gitlab,bitbucket,notion,postgres,mongodb,redis,docker,kubernetes,communication,sentry,context7]",
     "mcp_arena[browser,image,video,audio,pdf,qrcode,webscraping,spreadsheet,notification,screencapture,cloudstorage,mail]",
 ]
 

@@ -1,135 +1,93 @@
-# LangChain Integration Guide
+# LangChain Integration
 
-`mcp_arena` ships MCP servers, and a thin agent wrapper that wires those servers into a [LangChain v1](https://reference.langchain.com/python/langchain/agents/factory/create_agent) agent. The function is `mcp_arena.agent.make_mcp_agent`.
-
-> **Removed in 0.4.0:** `MCPLangChainIntegration` and `MCPLangChainWrapper` — both superseded by `make_mcp_agent`. See `CHANGELOG.md` for details.
+`mcp_arena` provides one bridge from MCP servers to a LangChain agent: `mcp_arena.agent.make_mcp_agent`. It builds a LangGraph runnable whose tools come from one or more `BaseMCPServer` instances. The older `MCPLangChainIntegration` and `MCPLangChainWrapper` classes were removed in 0.4.0; see [Changelog](../CHANGELOG.md).
 
 ## Install
 
 ```bash
-pip install mcp-arena[agents]                # core agents
-pip install mcp-arena[agents,openai]         # adds nothing yet — provider pkgs below
-pip install langchain-openai                 # or langchain-anthropic, langchain-groq, …
+pip install "mcp-arena[agents]"
+pip install langchain-openai
 ```
 
-`mcp-arena[agents]` pulls in `langchain>=1.0,<2.0` and `langchain-mcp-adapters>=0.1,<1.0`. Install the LLM provider of your choice next to it.
+The `agents` extra installs `langchain>=1.0,<2.0` and `langchain-mcp-adapters>=0.1,<1.0`. Install the LLM provider you use (`langchain-openai`, `langchain-anthropic`, `langchain-groq`, and so on) separately.
 
 ## Minimal example
 
 ```python
 import asyncio
+import os
+
 from langchain_openai import ChatOpenAI
 from mcp_arena.agent import make_mcp_agent
 from mcp_arena.presents.github import GithubMCPServer
 
 async def main():
-    llm = ChatOpenAI(model="gpt-4o")
     agent = await make_mcp_agent(
-        llm,
-        [GithubMCPServer(token="ghp_…")] if False else [],
-        # ^ nothing — leave empty to fail-fast with a clear message.
-        # For a real run:
-        # [GithubMCPServer(token="ghp_…")],
+        ChatOpenAI(model="gpt-4o"),
+        [GithubMCPServer(token=os.environ["GITHUB_TOKEN"])],
         system_prompt="You can search GitHub.",
     )
-
-asyncio.run(main())
-```
-
-A runnable real-world version:
-
-```python
-import asyncio, os
-from langchain_openai import ChatOpenAI
-from mcp_arena.agent import make_mcp_agent
-from mcp_arena.presents.github import GithubMCPServer
-from mcp_arena.presents.slack import SlackMCPServer
-
-async def main():
-    llm = ChatOpenAI(model="gpt-4o")
-    agent = await make_mcp_agent(
-        llm,
-        [
-            GithubMCPServer(token=os.environ["GITHUB_TOKEN"]),
-            SlackMCPServer(token=os.environ["SLACK_BOT_TOKEN"]),
-        ],
-        system_prompt=(
-            "You can search GitHub repos and post to Slack. "
-            "Always cite the repo name and owner before summarising."
-        ),
-        name="devops_bot",
-    )
-
     result = await agent.ainvoke({
-        "messages": [{
-            "role": "user",
-            "content": "Find the top-3 starred repos in my org and drop the links in #general.",
-        }]
+        "messages": [{"role": "user", "content": "List my repos"}]
     })
     print(result["messages"][-1].content)
 
 asyncio.run(main())
 ```
 
-## What it does under the hood
+Passing an empty `servers` list raises a `ValueError` with a clear message.
 
+## What it does
+
+```text
+make_mcp_agent(llm, servers, ...)
+    |
+    +-- Derive one MCP-adapter connection per server:
+    |       stdio            -> python -m mcp_arena.presents.<module>
+    |       sse              -> http://<host>:<port>/sse
+    |       streamable-http  -> http://<host>:<port>/mcp
+    |
+    +-- MultiServerMCPClient(connections).get_tools()
+    +-- Apply optional filters and extra tools
+    +-- langchain.agents.create_agent(llm, tools, system_prompt=..., **kwargs)
+            |
+            +-- compiled LangGraph runnable
 ```
-make_mcp_agent(llm, servers, …)
-    │
-    ├── For each server, derive an MCP-adapter connection entry:
-    │       stdio  → spawn "python -m mcp_arena.presents.<module>"
-    │       sse    → http://<host>:<port>/sse
-    │       http   → http://<host>:<port>/mcp  (streamable_http)
-    │
-    ├── MultiServerMCPClient(connections).get_tools()
-    │
-    ├── Apply filters / extras if you passed them
-    │
-    └── langchain.agents.create_agent(llm, tools, system_prompt=…, **kwargs)
-            └── returns a compiled LangGraph runnable
-```
 
-You don't manage subprocesses, sessions, or cleanup — stdio servers self-terminate when the client closes.
+You do not manage subprocesses, sessions, or cleanup; stdio servers stop when the client closes.
 
-## Filters: keep only the tools you want
+## Filter tools
 
 ```python
-from mcp_arena.agent import make_mcp_agent, ToolRegistry
+from mcp_arena.agent import ToolRegistry
 
-reg = ToolRegistry().register_server(slack_server)
-print("Available:", reg.names())             # ['chat_postMessage', 'list_channels', ...]
-reg.keep("chat_postMessage", "list_channels") # narrow to two
+registry = ToolRegistry().register_server(slack_server)
+print(registry.names())
+registry.keep("chat_postMessage", "list_channels")
 
-agent = await make_mcp_agent(
-    llm,
-    [slack_server],
-    names=reg.names(),
-)
+agent = await make_mcp_agent(llm, [slack_server], names=registry.names())
 ```
 
-See [`AGENT_GUIDE.md`](AGENT_GUIDE.md) for the full registry API: `register`, `keep`, `drop`, `rename`, `from_source`, `to_openai`, `get_callables`.
+See [Agent Guide](AGENT_GUIDE.md#4-toolregistry) for the full registry API.
 
-## Mixing MCP and non-MCP tools
+## Mix MCP and non-MCP tools
 
 ```python
-from mcp_arena.agent import BaseTool, make_mcp_agent
+from mcp_arena.agent import BaseTool
 
 class UpperTool(BaseTool):
     def __init__(self):
         super().__init__(name="uppercase", description="Capitalise a string")
-    def execute(self, s: str) -> str:
-        return s.upper()
 
-agent = await make_mcp_agent(
-    llm,
-    [slack_server],
-    extra_tools=[UpperTool()],
-)
+    def execute(self, text: str) -> str:
+        return text.upper()
+
+agent = await make_mcp_agent(llm, [slack_server], extra_tools=[UpperTool()])
 ```
 
-## Forwarded `create_agent` parameters
+## Forwarded create_agent parameters
 
-Everything `langchain.agents.create_agent` accepts is forwarded verbatim via `**create_agent_kwargs`. Reference: [create_agent (v1)](https://reference.langchain.com/python/langchain/agents/factory/create_agent).
+Everything `langchain.agents.create_agent` accepts is forwarded through `**create_agent_kwargs`.
 
 ```python
 from langgraph.checkpoint.memory import InMemorySaver
@@ -138,36 +96,38 @@ agent = await make_mcp_agent(
     llm,
     [github_server, slack_server],
     system_prompt="Always confirm before posting.",
-    checkpointer=InMemorySaver(),     # persistence
-    interrupt_before=["tools"],        # human-in-the-loop
+    checkpointer=InMemorySaver(),
+    interrupt_before=["tools"],
     name="devops_bot",
     debug=True,
 )
 ```
 
-See `AGENT_GUIDE.md §3` for the full list — `middleware`, `response_format`, `state_schema`, `context_schema`, `store`, `interrupt_after`, `cache`, `transformers`, …
+See the [Agent Guide](AGENT_GUIDE.md#3-forwarded-create_agent-parameters) for the full list of forwarded arguments.
 
-## Multi-server
+## Multiple servers
 
-Just pass a list. Each server becomes its own connection; tool names can collide, so disambiguate if needed:
+Pass a list. Tool names may collide, so disambiguate when needed:
 
 ```python
 agent = await make_mcp_agent(
     llm,
-    [server_a, server_b],  # same transport / different ports
+    [server_a, server_b],
     server_names={id(server_a): "alpha", id(server_b): "beta"},
 )
 ```
 
-## Transport choices
+Use `ToolRegistry.rename(...)` if two servers expose the same tool name.
 
-| `BaseMCPServer.transport` | What happens                                                                  |
-| ------------------------- | ----------------------------------------------------------------------------- |
-| `stdio`                   | Builder spawns `python -m mcp_arena.presents.<module>` and talks over stdin.  |
-| `sse`                     | Builder connects to `http://<host>:<port>/sse`.                                |
-| `http` / `streamable-http`| Builder connects to `http://<host>:<port>/mcp` (transport `streamable_http`). |
+## Transports
 
-Switch on the server side:
+| `server.transport` | Builder behavior |
+| --- | --- |
+| `stdio` | Spawns `python -m mcp_arena.presents.<module>` and talks over stdin/stdout |
+| `sse` | Connects to `http://<host>:<port>/sse` |
+| `streamable-http` | Connects to `http://<host>:<port>/mcp` using adapter transport `streamable_http` |
+
+Set the transport on the server side:
 
 ```python
 AudioMCPServer(transport="sse", host="0.0.0.0", port=8001)
@@ -175,48 +135,39 @@ AudioMCPServer(transport="sse", host="0.0.0.0", port=8001)
 
 ## Sync wrapper
 
-`make_mcp_agent` is async (the MCP adapter only exposes an async `get_tools()`). If you can't `await`, use `make_mcp_agent_sync`:
+`make_mcp_agent` is async because the MCP adapter only exposes an async `get_tools()`. For synchronous code:
 
 ```python
 from mcp_arena.agent import make_mcp_agent_sync
 
-agent = make_mcp_agent_sync(
-    llm,
-    [server],
-    system_prompt="...",
-)
+agent = make_mcp_agent_sync(llm, [server], system_prompt="...")
 ```
 
-Calls `asyncio.run` internally — don't use it from inside a running event loop.
+It calls `asyncio.run()` internally, so do not use it from inside a running event loop.
 
 ## Troubleshooting
 
-| Symptom                                           | Likely cause                                                  |
-| ------------------------------------------------- | ------------------------------------------------------------- |
-| `ValueError: make_mcp_agent requires at least one MCP server` | Forgot the `servers` argument.                          |
-| `ImportError: langchain_mcp_adapters`             | `pip install "mcp-arena[agents]"`.                            |
-| Server fails to start in stdio mode               | Credentials missing — most presets read from env vars.         |
-| Subprocess keeps spawning but the agent times out | Server constructor needs credentials up-front; pass them in.   |
-| `RuntimeError("asyncio.run() cannot be called…")` | You called `make_mcp_agent_sync(...)` from inside a loop. `await make_mcp_agent(...)` instead. |
+| Symptom | Likely cause |
+| --- | --- |
+| `ValueError: make_mcp_agent requires at least one MCP server` | The `servers` list is empty. |
+| `ImportError: langchain_mcp_adapters` | Install `pip install "mcp-arena[agents]"`. |
+| Server fails to start in stdio mode | Credentials are missing from the environment. |
+| Subprocess keeps spawning but the agent times out | The server constructor needs credentials up front; pass them in. |
+| `RuntimeError: asyncio.run() cannot be called...` | `make_mcp_agent_sync()` was called from inside an event loop. Use `await make_mcp_agent(...)`. |
 
 ## Migrating from 0.3.x
 
 ```python
-# before (0.3.x)
-from mcp_arena.wrapper.langchain_wrapper import MCPLangChainWrapper
-wrapper = MCPLangChainWrapper(servers={"github": github_server}, auto_start=True)
-await wrapper.connect()
-agent = wrapper.create_agent(llm=llm, system_prompt="...")
-response = await wrapper.invoke_agent(agent, "...")
-
-# after (0.4.0)
 from mcp_arena.agent import make_mcp_agent
+
 agent = await make_mcp_agent(
     llm,
     [github_server],
     system_prompt="...",
 )
-response = await agent.ainvoke({"messages": [{"role": "user", "content": "..."}]})
+result = await agent.ainvoke({
+    "messages": [{"role": "user", "content": "..."}]
+})
 ```
 
-That's the whole migration.
+The previous `MCPLangChainWrapper.connect()` / `create_agent()` / `invoke_agent()` flow is no longer needed; pass the server objects directly. See the [0.4.0 migration guide](../CHANGELOG.md#migration-guide-03x-to-040).

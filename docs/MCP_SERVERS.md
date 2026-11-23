@@ -1,141 +1,116 @@
-# Available MCP Servers — install & run reference
+# MCP Servers
 
-> **The headline feature of `mcp_arena` is the MCP server.** This doc is a focused reference: what presets ship today, what extra to install for each, what credentials they need, and how to run them.
+Reference for the presets that ship with `mcp_arena`: what each one does, which extra it needs, which credentials it reads, and how to run it. For a prose walkthrough, see [Quick Start](QUICKSTART.md). For constructor options and custom presets, see [MCP Servers Guide](MCP_SERVERS_GUIDE.md).
 
-If you want the prose walk-through instead, see [`QUICKSTART.md`](QUICKSTART.md). For the full constructor surface and writing your own preset, see [`MCP_SERVERS_GUIDE.md`](MCP_SERVERS_GUIDE.md).
+## Core presets
 
----
+Three general-purpose presets ship in the core package:
 
-## What `pip install mcp-arena` already gives you
-
-Three general-purpose presets ship in **core** — no extra needed:
-
-| Preset | Class | Use it for |
-| ------ | ----- | ---------- |
-| Local operations | `LocalOperationsMCPServer` | file / system / process tools on your own machine |
-| Generic API | `GenericAPIMCPServer` | make any HTTP request (saves API calls, request bodies, retries) |
-| SMTP | `SMTPServer` | send email via any SMTP server |
+| Preset | Class | Purpose |
+| --- | --- | --- |
+| Local operations | `LocalOperationsMCPServer` | File, system, and process tools |
+| Generic API | `GenericAPIMCPServer` | Arbitrary HTTP requests |
+| SMTP | `SMTPServer` | Outbound email via any SMTP server |
 
 ```bash
 pip install mcp-arena
-python -c "
-from mcp_arena.presents.local_operation import LocalOperationsMCPServer
-LocalOperationsMCPServer().run()
-"
+python -c "from mcp_arena.presents.local_operation import LocalOperationsMCPServer; LocalOperationsMCPServer().run()"
 ```
 
-That's a working MCP server with one command.
+All other presets require an extra. Without it, construction raises an `ImportError` with the install command:
 
-Everything else is gated behind an extra. If you try to instantiate a gated preset without its extra, you get a clear `ImportError` pointing at the install command:
-
-```
+```text
 PyPDF2, fitz, pdfplumber and reportlab are required for this MCP server but are not installed.
 Install it with:    pip install "mcp-arena[pdf]"
 ```
 
-## What ships today — 30+ presets
+## Available presets
 
-The lazy loader in `mcp_arena.presents` AST-scans the package directory and exports every class whose name ends in `Server`. Concretely, as of `0.5.0`:
+The lazy loader in `mcp_arena.presents` discovers every class whose name ends in `Server`. As of 0.5.0 the following presets ship:
 
-| # | Module | Class | Extra to install |
-| - | ------ | ----- | ----------------- |
+| # | Module | Class | Extra |
+| - | ------ | ----- | ----- |
 | **Communication** | | | |
-| 1 | `slack`         | `SlackMCPServer`         | `mcp-arena[slack]` |
-| 2 | `whatsapp`      | `WhatsAppMCPServer`      | `mcp-arena[whatsapp]` |
-| 3 | `gmail`         | `GmailMCPServer`         | `mcp-arena[gmail]` |
-| 4 | `outlook`       | `OutlookMCPServer`       | `mcp-arena[outlook]` |
-| 5 | `smtp`          | `SMTPMCPServer`          | `mcp-arena[mail]` |
-| 6 | `mail`          | `MailMCPServer`          | `mcp-arena[mail]` |
-| 7 | `notification`  | `NotificationMCPServer`  | `mcp-arena[notification]` |
+| 1 | `slack` | `SlackMCPServer` | `mcp-arena[slack]` |
+| 2 | `whatsapp` | `WhatsAppMCPServer` | `mcp-arena[whatsapp]` |
+| 3 | `gmail` | `GmailMCPServer` | `mcp-arena[gmail]` |
+| 4 | `outlook` | `OutlookMCPServer` | `mcp-arena[outlook]` |
+| 5 | `smtp` | `SMTPServer` | core |
+| 6 | `mail` | `GmailMCPServer` | `mcp-arena[mail]` |
+| 7 | `notification` | `NotificationMCPServer` | `mcp-arena[notification]` |
 | **Dev platforms** | | | |
-| 8 | `github`        | `GithubMCPServer`        | `mcp-arena[github]` |
-| 9 | `gitlab`        | `GitLabMCPServer`        | `mcp-arena[gitlab]` |
-| 10 | `bitbucket`    | `BitbucketMCPServer`     | `mcp-arena[bitbucket]` |
+| 8 | `github` | `GithubMCPServer` | `mcp-arena[github]` |
+| 9 | `gitlab` | `GitLabMCPServer` | `mcp-arena[gitlab]` |
+| 10 | `bitbucket` | `BitbucketMCPServer` | `mcp-arena[bitbucket]` |
 | **Productivity** | | | |
-| 11 | `notion`       | `NotionMCPServer`        | `mcp-arena[notion]` |
-| 12 | `confluence`   | `ConfluenceMCPServer`    | `mcp-arena[bitbucket]` |
-| 13 | `jira`         | `JiraMCPServer`          | `mcp-arena[bitbucket]` |
-| **Data & storage** | | | |
-| 14 | `postgres`     | `PostgresMCPServer`      | `mcp-arena[postgres]` |
-| 15 | `mongo`        | `MongoDBMCPServer`       | `mcp-arena[mongodb]` |
-| 16 | `redis`        | `RedisMCPServer`         | `mcp-arena[redis]` |
-| 17 | `vectordb`     | `VectorDBMCPServer`      | `mcp-arena[vectordb]` |
-| **AI / documentation** | | | |
-| 18 | `context7`     | `Context7MCPServer`      | `mcp-arena[context7]` |
-| **Cloud / OS** | | | |
-| 19 | `aws`          | `S3MCPServer`            | `mcp-arena[cloudstorage]` |
-| 20 | `cloudstorage` | `CloudStorageMCPServer`  | `mcp-arena[cloudstorage]` |
-| 21 | `docker`       | `DockerMCPServer`        | `mcp-arena[docker]` |
-| 22 | `local_operation` | `LocalOperationsMCPServer` | `mcp-arena[local_operation]` |
-| 23 | `screencapture` | `ScreenCaptureMCPServer` | `mcp-arena[screencapture]` |
-| **Browser / web / media** | | | |
-| 24 | `browser`      | `BrowserMCPServer`       | `mcp-arena[browser]` |
-| 25 | `webscraping`  | `WebScrapingMCPServer`   | `mcp-arena[webscraping]` |
-| 26 | `generic_api`  | `GenericAPIMCPServer`    | `mcp-arena[generic_api]` |
-| 27 | `image`        | `ImageMCPServer`         | `mcp-arena[image]` |
-| 28 | `video`        | `VideoMCPServer`         | `mcp-arena[video]` |
-| 29 | `audio`        | `AudioMCPServer`         | `mcp-arena[audio]` |
-| 30 | `pdf`          | `PDFMCPServer`           | `mcp-arena[pdf]` |
-| 31 | `qrcode`       | `QRCodeMCPServer`        | `mcp-arena[qrcode]` |
-| 32 | `spreadsheet`  | `SpreadsheetMCPServer`   | `mcp-arena[spreadsheet]` |
+| 11 | `notion` | `NotionMCPServer` | `mcp-arena[notion]` |
+| 12 | `confluence` | `ConfluenceMCPServer` | `mcp-arena[bitbucket]` |
+| 13 | `jira` | `JiraMCPServer` | `mcp-arena[bitbucket]` |
+| **Data and storage** | | | |
+| 14 | `postgres` | `PostgresMCPServer` | `mcp-arena[postgres]` |
+| 15 | `mongo` | `MongoDBMCPServer` | `mcp-arena[mongodb]` |
+| 16 | `redis` | `RedisMCPServer` | `mcp-arena[redis]` |
+| 17 | `vectordb` | `VectorDBMCPServer` | `mcp-arena[vectordb]` |
+| **Monitoring** | | | |
+| 18 | `sentry` | `SentryMCPServer` | `mcp-arena[sentry]` |
+| **AI and documentation** | | | |
+| 19 | `context7` | `Context7MCPServer` | `mcp-arena[context7]` |
+| **Cloud and OS** | | | |
+| 20 | `aws` | `S3MCPServer` | `mcp-arena[cloudstorage]` |
+| 21 | `cloudstorage` | `CloudStorageMCPServer` | `mcp-arena[cloudstorage]` |
+| 22 | `docker` | `DockerMCPServer` | `mcp-arena[docker]` |
+| 23 | `local_operation` | `LocalOperationsMCPServer` | core |
+| 24 | `screencapture` | `ScreenCaptureMCPServer` | `mcp-arena[screencapture]` |
+| **Browser, web, and media** | | | |
+| 25 | `browser` | `BrowserMCPServer` | `mcp-arena[browser]` |
+| 26 | `webscraping` | `WebScrapingMCPServer` | `mcp-arena[webscraping]` |
+| 27 | `generic_api` | `GenericAPIMCPServer` | core |
+| 28 | `image` | `ImageMCPServer` | `mcp-arena[image]` |
+| 29 | `video` | `VideoMCPServer` | `mcp-arena[video]` |
+| 30 | `audio` | `AudioMCPServer` | `mcp-arena[audio]` |
+| 31 | `pdf` | `PDFMCPServer` | `mcp-arena[pdf]` |
+| 32 | `qrcode` | `QRCodeMCPServer` | `mcp-arena[qrcode]` |
+| 33 | `spreadsheet` | `SpreadsheetMCPServer` | `mcp-arena[spreadsheet]` |
 
-> Drop a new `<your_preset>.py` in `mcp_arena/presents/` and it appears in this list automatically — see [`MCP_SERVERS_GUIDE.md`](MCP_SERVERS_GUIDE.md#custom) for the recipe.
+Adding a new `<name>.py` to `mcp_arena/presents/` makes it appear in the loader automatically. See [Custom presets](MCP_SERVERS_GUIDE.md#4-custom-presets).
 
----
-
-## How to install
-
-`mcp_arena` has a no-presets core, plus one extra per preset / group. You only pay for what you use.
+## Install
 
 ```bash
-# 1. Core only (CLI + base classes; no preset can actually run yet)
 pip install mcp-arena
-
-# 2. One preset
 pip install "mcp-arena[github]"
-
-# 3. Several at once
 pip install "mcp-arena[github,slack,postgres,redis]"
-
-# 4. Everything (heavy)
 pip install "mcp-arena[all]"
-
-# 5. Core + the LangChain bridge (you'll still need the matching preset extras)
-pip install "mcp-arena[agents] langchain-openai"
+pip install "mcp-arena[agents]" langchain-openai
 ```
 
-### Bundle extras
+Bundle extras:
 
-| Bundle          | What it pulls in                                                            |
-| --------------- | -------------------------------------------------------------------------- |
-| `email`         | `[gmail,outlook]`                                                          |
-| `messaging`     | `[slack,whatsapp]`                                                         |
-| `communication` | `[gmail,outlook,slack,whatsapp]`                                            |
-| `mail`          | `[gmail,outlook]` (used by `MailMCPServer` / `SMTPMCPServer`)              |
-| `notification`  | `[communication]`                                                          |
-| `all`           | every preset extra + `[agents]`                                             |
-| `complete`      | `[all,dev]` — adds `pytest`, `black`, `ruff`, `mypy`, `pre-commit`          |
-| `dev`           | test/lint tools only (no presets)                                          |
+| Bundle | Contents |
+| --- | --- |
+| `email` | `gmail`, `outlook` |
+| `messaging` | `slack`, `whatsapp` |
+| `communication` | `gmail`, `outlook`, `slack`, `whatsapp` |
+| `mail` | `gmail`, `outlook` |
+| `notification` | `communication` |
+| `all` | Every preset extra plus `agents` |
+| `complete` | `all` plus `dev` |
+| `dev` | Test and lint tools only |
 
-Python 3.12+ is required (`langchain>=1.0,<2.0` and `chromadb>=1.3.5` both need it).
+Python 3.12 or newer is required. See [Installation](INSTALLATION.md) for the full extras table.
 
----
+## Run a server
 
-## How to run a server
-
-Three ways. Pick whichever fits your client.
-
-### 1. From Python (any preset)
+### From Python
 
 ```python
-# server.py
 from mcp_arena.presents.github import GithubMCPServer
 
 server = GithubMCPServer(
-    token="ghp_…",                        # or pull from $GITHUB_TOKEN
+    token="ghp_...",
     host="127.0.0.1",
     port=8000,
-    transport="stdio",                     # stdio (default) | sse | http
+    transport="stdio",
     debug=False,
 )
 
@@ -143,22 +118,20 @@ if __name__ == "__main__":
     server.run()
 ```
 
-Run it: `python server.py`. Now point any MCP client at the process.
+Run it with `python server.py` and point an MCP client at the process.
 
-### 2. From the CLI
+### From the CLI
 
 ```bash
-mcp-arena list                  # every preset mcp_arena knows about
-mcp-arena run github --help     # preset-specific options
-mcp-arena run github --token "$GITHUB_TOKEN"
-mcp-arena run github --token "$GITHUB_TOKEN" --transport sse --host 0.0.0.0 --port 8001
+mcp-arena list
+mcp-arena info github
+mcp-arena run --mcp-server github --token "$GITHUB_TOKEN"
+mcp-arena run --mcp-server github --token "$GITHUB_TOKEN" --transport sse --host 0.0.0.0 --port 8001
 ```
 
-The CLI is generated from each preset's `__init__` signature — so every kwarg is also a `--flag`.
+The CLI forwards `--name value` arguments to the preset constructor.
 
-### 3. Standalone for stdio clients (Claude Desktop, Cursor, …)
-
-Add to your client's MCP config:
+### From an MCP client configuration
 
 ```json
 {
@@ -166,53 +139,41 @@ Add to your client's MCP config:
     "github": {
       "command": "python",
       "args": ["-m", "mcp_arena.presents.github"],
-      "env": { "GITHUB_TOKEN": "ghp_…" }
+      "env": { "GITHUB_TOKEN": "ghp_..." }
     }
   }
 }
 ```
 
-The CLI command `mcp-arena run github …` is a thin wrapper around this.
+## Credentials
 
----
+Most presets accept credentials as constructor arguments or read them from environment variables. A `.env` file in the project root is loaded when `mcp_arena` is imported.
 
-## Credentials each server reads
+| Server | Environment variables |
+| --- | --- |
+| `github` | `GITHUB_TOKEN` |
+| `gitlab` | `GITLAB_PRIVATE_TOKEN`, `GITLAB_OAUTH_TOKEN`, `CI_JOB_TOKEN` |
+| `bitbucket` | `BITBUCKET_USERNAME`, `BITBUCKET_APP_PASSWORD` |
+| `notion` | `NOTION_TOKEN` |
+| `confluence` | `CONFLUENCE_USERNAME`, `CONFLUENCE_PASSWORD` |
+| `jira` | `JIRA_USERNAME`, `JIRA_PASSWORD` |
+| `slack` | `SLACK_BOT_TOKEN` or `SLACK_TOKEN` |
+| `whatsapp` | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` |
+| `gmail` | `GMAIL_CREDENTIALS_PATH` |
+| `outlook` | Set via constructor (MSAL) |
+| `smtp` | `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` |
+| `postgres` | `POSTGRES_CONNECTION_STRING` |
+| `mongo` | `MONGODB_CONNECTION_STRING` |
+| `redis` | Constructor arguments |
+| `vectordb` | Constructor arguments; `OPENAI_API_KEY` for embeddings |
+| `sentry` | `SENTRY_AUTH_TOKEN`, `SENTRY_ORG` |
+| `context7` | `CONTEXT7_API_KEY` (optional) |
+| `aws` | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` |
+| `cloudstorage` | `GCS_PROJECT_ID`, `GCS_BUCKET_NAME`, `GOOGLE_APPLICATION_CREDENTIALS` |
+| `docker` | Docker socket and configuration |
+| `local_operation`, `screencapture`, `browser`, `webscraping`, `generic_api`, `image`, `video`, `audio`, `pdf`, `qrcode`, `spreadsheet` | None |
 
-Most presets accept credentials as **constructor kwargs** *or* **environment variables** (and the preset picks the env var if you skip the kwarg). Use whatever's easier; the env-var fallback is there so you can ship a `.env` file.
-
-| Server | Env var(s) it reads |
-| ------ | ------------------- |
-| `github`        | `GITHUB_TOKEN` |
-| `gitlab`        | `GITLAB_PRIVATE_TOKEN`, `GITLAB_OAUTH_TOKEN`, `CI_JOB_TOKEN` |
-| `bitbucket`     | `BITBUCKET_USERNAME` + `BITBUCKET_APP_PASSWORD` (or OAuth) |
-| `notion`        | `NOTION_TOKEN` |
-| `confluence`    | `CONFLUENCE_USERNAME` + `CONFLUENCE_PASSWORD` |
-| `jira`          | `JIRA_USERNAME` + `JIRA_PASSWORD` |
-| `slack`         | `SLACK_BOT_TOKEN` (preferred) or `SLACK_TOKEN` |
-| `whatsapp`      | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` |
-| `gmail`         | `GMAIL_CREDENTIALS_PATH` (OAuth JSON) |
-| `outlook`       | (MSAL client — set via constructor) |
-| `smtp`          | `SMTP_HOST`, `SMTP_USERNAME`, `SMTP_PASSWORD` |
-| `postgres`      | `POSTGRES_CONNECTION_STRING` |
-| `mongo`         | `MONGODB_CONNECTION_STRING` |
-| `redis`         | (constructor kwargs — host/port/password) |
-| `vectordb`      | (constructor kwargs; OpenAI uses `OPENAI_API_KEY` for embeddings) |
-| `context7`      | `CONTEXT7_API_KEY` (optional — public rate limits apply without it) |
-| `aws`           | `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `S3_BUCKET_NAME` |
-| `cloudstorage`  | `GCS_PROJECT_ID`, `GCS_BUCKET_NAME`, `GOOGLE_APPLICATION_CREDENTIALS` |
-| `docker`        | (reads Docker socket / config) |
-| `local_operation` | none (uses `psutil`) |
-| `screencapture` | none (uses `pyautogui`) |
-| `browser`       | none (uses Playwright) |
-| `webscraping`   | none (uses `requests` / `beautifulsoup4`) |
-| `generic_api`   | none |
-| `image`, `video`, `audio`, `pdf`, `qrcode`, `spreadsheet` | none |
-
-A `.env` file at the project root is auto-loaded on `import mcp_arena` (via `python-dotenv`).
-
----
-
-## Recipes per category
+## Recipes
 
 ### Communication
 
@@ -224,155 +185,98 @@ pip install "mcp-arena[slack]"
 import os
 from mcp_arena.presents.slack import SlackMCPServer
 
-server = SlackMCPServer(token=os.environ["SLACK_BOT_TOKEN"])
-server.run()
+SlackMCPServer(token=os.environ["SLACK_BOT_TOKEN"]).run()
 ```
 
 ```bash
 pip install "mcp-arena[whatsapp]"
 ```
+
 ```python
-server = WhatsAppMCPServer()   # pulls TWILIO_* from env
-server.run()
+from mcp_arena.presents.whatsapp import WhatsAppMCPServer
+
+WhatsAppMCPServer().run()
 ```
 
 ```bash
 pip install "mcp-arena[gmail,outlook]"
 ```
+
 ```python
 from mcp_arena.presents.gmail import GmailMCPServer
-server = GmailMCPServer(credentials_path="./gmail_creds.json")
-server.run()
-```
 
-```bash
-pip install "mcp-arena[communication]"   # gmail + outlook + slack + whatsapp
+GmailMCPServer(credentials_path="./gmail_creds.json").run()
 ```
 
 ### Dev platforms
 
 ```bash
-pip install "mcp-arena[github]"
-```
-```python
-from mcp_arena.presents.github import GithubMCPServer
-server = GithubMCPServer(token=os.environ["GITHUB_TOKEN"])
-server.run()
-```
-
-```bash
-pip install "mcp-arena[gitlab]"
-pip install "mcp-arena[bitbucket]"
+pip install "mcp-arena[github,gitlab,bitbucket]"
 ```
 
 ### Productivity
 
 ```bash
-pip install "mcp-arena[notion]"
-pip install "mcp-arena[bitbucket]"   # atlassian-python-api covers jira + confluence + bitbucket
+pip install "mcp-arena[notion,bitbucket]"
 ```
 
-### Data & storage
+`bitbucket` provides `atlassian-python-api`, which covers Bitbucket, Jira, and Confluence.
+
+### Data and storage
 
 ```bash
-pip install "mcp-arena[postgres]"
-pip install "mcp-arena[mongodb]"
-pip install "mcp-arena[redis]"
-pip install "mcp-arena[vectordb]"   # chromadb + sentence-transformers (heavy)
+pip install "mcp-arena[postgres,mongodb,redis,vectordb]"
 ```
 
-### AI / documentation
+### Monitoring and documentation
 
 ```bash
-pip install "mcp-arena[context7]"       # httpx (live library docs for LLMs)
+pip install "mcp-arena[sentry,context7]"
 ```
+
 ```python
 from mcp_arena.presents.context7 import Context7MCPServer
 
-server = Context7MCPServer()            # picks up CONTEXT7_API_KEY if set
-server.run()
-# resolve_library_id → query_docs, or search_docs for a one-shot lookup
+Context7MCPServer().run()
 ```
 
-### Cloud / OS
+`Context7MCPServer` registers `resolve_library_id`, `query_docs`, and `search_docs`.
+
+### Cloud and OS
 
 ```bash
-pip install "mcp-arena[cloudstorage]"   # boto3 + google-cloud-storage
-pip install "mcp-arena[docker]"
-pip install "mcp-arena[local_operation]"
-pip install "mcp-arena[screencapture]"
+pip install "mcp-arena[cloudstorage,docker,screencapture]"
 ```
 
-### Browser / web / media
+### Browser, web, and media
 
 ```bash
-pip install "mcp-arena[browser]"          # playwright + opencv + pillow
-pip install "mcp-arena[webscraping]"      # requests + bs4 + selenium
-pip install "mcp-arena[generic_api]"      # httpx
-pip install "mcp-arena[image]"            # pillow + opencv
-pip install "mcp-arena[video]"            # moviepy + numpy
-pip install "mcp-arena[audio]"            # pydub + librosa + numpy
-pip install "mcp-arena[pdf]"              # PyMuPDF + PyPDF2 + reportlab + pdfplumber
-pip install "mcp-arena[qrcode]"           # qrcode[pil]
-pip install "mcp-arena[spreadsheet]"      # pandas + openpyxl
+pip install "mcp-arena[browser,webscraping,image,video,audio,pdf,qrcode,spreadsheet]"
 ```
 
----
+## Transports
 
-## Pick a transport
-
-Every preset supports all three transports; pick by where the client lives.
-
-| Transport         | Endpoint                        | Use when                                       |
-| ----------------- | ------------------------------- | ---------------------------------------------- |
-| `stdio` (default) | in-process via stdin/stdout     | Local MCP clients (Claude Desktop, Cursor), the `make_mcp_agent` flow |
-| `sse`             | `http://<host>:<port>/sse`      | Browser clients, streaming, server-sent events |
-| `http`            | `http://<host>:<port>/mcp`      | Multi-process / networked setups, custom clients |
+| Transport | Endpoint | Use case |
+| --- | --- | --- |
+| `stdio` (default) | stdin/stdout | Local MCP clients and `make_mcp_agent` |
+| `sse` | `http://<host>:<port>/sse` | Browser and streaming clients |
+| `streamable-http` | `http://<host>:<port>/mcp` | Networked or multi-process setups |
 
 ```python
-# Same server, three ways
-server = GithubMCPServer(token="…", transport="stdio")             # default
-server = GithubMCPServer(token="…", transport="sse", port=8001)    # listen on :8001/sse
-server = GithubMCPServer(token="…", transport="http", port=8001)   # listen on :8001/mcp
+server = GithubMCPServer(token="...", transport="stdio")
+server = GithubMCPServer(token="...", transport="sse", port=8001)
+server = GithubMCPServer(token="...", transport="streamable-http", port=8001)
 ```
 
----
+## Consume a running server
 
-## How to install *every* preset
-
-If you're kicking the tyres and want the whole library:
-
-```bash
-pip install "mcp-arena[all]"
-```
-
-That's ~30 packages. Use `pip install "mcp-arena[complete]"` if you also want dev tooling (pytest, black, ruff, mypy, pre-commit).
-
----
-
-## After it's running
-
-Once `server.run()` is going, you have three consumers you can attach:
-
-1. **Any MCP client** (Claude Desktop, Cursor, your own) — speak MCP over the transport you chose.
-2. **The `make_mcp_agent` bridge** — pass the same `BaseMCPServer` instance to a LangChain agent. See [`LANGCHAIN_INTEGRATION.md`](LANGCHAIN_INTEGRATION.md).
-3. **The `MCPAgentWrapper`** — pull the tools out as plain Python callables, no MCP client needed. See [`MCP_SERVERS_GUIDE.md`](MCP_SERVERS_GUIDE.md).
+1. **Any MCP client** — speak MCP over the chosen transport.
+2. **LangChain agent** — pass the same server object to `make_mcp_agent`. See [LangChain Integration](LANGCHAIN_INTEGRATION.md).
+3. **Plain Python callables** — use `MCPAgentWrapper`, without an MCP client.
 
 ```python
-# 1. Plain MCP client (any)
-server.run()                     # stdio — client spawns the process
-
-# 2. LangChain agent
-from mcp_arena.agent import make_mcp_agent
-agent = await make_mcp_agent(llm, [server], system_prompt="…")
-
-# 3. Plain Python callables
 from mcp_arena.wrapper import MCPAgentWrapper
+
 for tool in MCPAgentWrapper(server).get_tools():
     print(tool["function"]["name"])
 ```
-
-Pick one, then read the matching doc:
-
-- MCP client / `make_mcp_agent` → [`LANGCHAIN_INTEGRATION.md`](LANGCHAIN_INTEGRATION.md)
-- `MCPAgentWrapper` / writing your own preset → [`MCP_SERVERS_GUIDE.md`](MCP_SERVERS_GUIDE.md)

@@ -1,37 +1,32 @@
 # MCP Servers Guide
 
-`mcp_arena` ships ~30 ready-to-use MCP server presets. Each preset is a `BaseMCPServer` subclass that registers its tools at construction time; `mcp_arena.presents` discovers them automatically — drop a `*.py` in `mcp_arena/presents/` and `from mcp_arena.presents import XMCPServer` just works.
+`mcp_arena` ships 32 ready-to-run MCP server presets. Each preset is a `BaseMCPServer` subclass that registers its tools at construction. The `mcp_arena.presents` loader discovers them automatically: drop a `*.py` file in `mcp_arena/presents/` and `from mcp_arena.presents import YourMCPServer` works.
 
-## Table of contents
-1. [Architecture](#architecture)
-2. [`BaseMCPServer`](#base)
-3. [Presets by category](#presets)
-4. [Custom presets](#custom)
-5. [Running presets](#running)
-6. [Handing presets to a LangChain agent](#integration)
-7. [Best practices](#best-practices)
+## Contents
 
----
+- [1. Architecture](#1-architecture)
+- [2. BaseMCPServer](#2-basemcpserver)
+- [3. Presets by category](#3-presets-by-category)
+- [4. Custom presets](#4-custom-presets)
+- [5. Running presets](#5-running-presets)
+- [6. Using presets with LangChain](#6-using-presets-with-langchain)
+- [7. Best practices](#7-best-practices)
 
-<a id="architecture"></a>
 ## 1. Architecture
 
-```
+```text
 BaseMCPServer (abstract — mcp_arena.mcp.server)
-    │
-    ├── self.mcp_server : FastMCP            # the actual MCP server
-    ├── self._registered_tools : Dict[str, Callable]
-    │     # populated when subclasses register via self.mcp_server.tool()
-    │
-    └── subclass overrides _register_tools() to add tools
+    |
+    +-- self.mcp_server : FastMCP
+    +-- self._registered_tools : dict[str, Callable]
+    +-- subclass overrides _register_tools() to add tools
 ```
 
-Subprocess stdio servers are launched as `python -m mcp_arena.presents.<module>` by `make_mcp_agent`'s `_config_for` function. Each `<module>.py` must define exactly one `*Server` class.
+`_register_tools()` registers functions with FastMCP via `self.mcp_server.tool()`. After construction, the same functions are copied into `_registered_tools` so non-MCP consumers can inspect and call them.
 
----
+For stdio connections, `make_mcp_agent` launches a preset as `python -m mcp_arena.presents.<module>`. Each module should define one `*Server` class with a constructor that can be called from environment variables alone.
 
-<a id="base"></a>
-## 2. `BaseMCPServer`
+## 2. BaseMCPServer
 
 ```python
 from mcp_arena.mcp.server import BaseMCPServer
@@ -44,114 +39,112 @@ class MyServer(BaseMCPServer):
             return f"Hello, {name}!"
 ```
 
-The default constructor (`auto_register_tools=True`) wires up FastMCP, runs your `_register_tools`, and copies the registered functions into `self._registered_tools` so non-MCP clients (and `ToolRegistry`) can introspect them.
+The constructor (`auto_register_tools=True` by default) creates the FastMCP instance, calls `_register_tools()`, and synchronizes the registered functions into `_registered_tools`.
 
-### Transport options
+### Transports
 
-| Transport      | Server endpoint                    |
-| -------------- | ---------------------------------- |
-| `stdio`        | in-process via stdin/stdout        |
-| `sse`          | `http://<host>:<port>/sse`         |
-| `http`         | `http://<host>:<port>/mcp`         |
-| `streamable-http` | alias for `http`                |
+| Transport | Server endpoint |
+| --- | --- |
+| `stdio` (default) | stdin/stdout |
+| `sse` | `http://<host>:<port>/sse` |
+| `streamable-http` | `http://<host>:<port>/mcp` |
 
-Run with `server.run()` — uses the transport set on the instance — or pass an override: `server.run(transport="sse")`.
+Call `server.run()` to use the instance's transport, or override it with `server.run(transport="sse")`.
 
-### Constructor kwargs (most presets)
+### Constructor arguments
 
-| Key            | Meaning                                                                  |
-| -------------- | ------------------------------------------------------------------------ |
-| `host`         | bind address (default `127.0.0.1`)                                       |
-| `port`         | bind port (default `8000`)                                               |
-| `transport`    | `stdio` / `sse` / `http`                                                 |
-| `debug`        | verbose logs                                                             |
-| `log_level`    | `DEBUG` / `INFO` / `WARNING` / `ERROR` / `CRITICAL`                     |
+| Argument | Meaning |
+| --- | --- |
+| `name` | Server name |
+| `description` | Server instructions shown to clients |
+| `host` | Bind address (default `127.0.0.1`) |
+| `port` | Bind port (default `8000`) |
+| `transport` | `stdio`, `sse`, or `streamable-http` |
+| `debug` | Enable debug logging |
+| `log_level` | `DEBUG`, `INFO`, `WARNING`, `ERROR`, or `CRITICAL` |
+| `mount_path`, `sse_path`, `streamable_http_path` | Override HTTP endpoint paths |
+| `auto_register_tools` | Register tools during construction (default `True`) |
 
-Each preset adds its own kwargs (credentials, output dirs, default formats, etc.) on top.
+Each preset adds its own arguments for credentials, output directories, and formats.
 
----
-
-<a id="presets"></a>
 ## 3. Presets by category
 
+The extra column shows what to install; a blank entry means the preset is in core.
+
 ### Communication
-| Preset                       | Class                         | Requires                          | Notes |
-| ---------------------------- | ----------------------------- | --------------------------------- | ----- |
-| Slack                        | `SlackMCPServer`              | `mcp-arena[slack]`                | channels, messages, workflows |
-| WhatsApp                     | `WhatsAppMCPServer`           | `mcp-arena[whatsapp]`             | Twilio-backed; needs `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_WHATSAPP_NUMBER` |
-| Gmail                        | `GmailMCPServer`              | `mcp-arena[gmail]`                | OAuth; needs `credentials.json` |
-| Outlook                      | `OutlookMCPServer`            | `mcp-arena[outlook]`              | MSAL |
-| SMTP                         | `SMTPMCPServer`               | `mcp-arena[mail]` (pulls in gmail/outlook) | Outbound-only companion |
-| Mail                         | `MailMCPServer`               | `mcp-arena[mail]`                 | Facade over Gmail + Outlook |
-| Notification                 | `NotificationMCPServer`       | `mcp-arena[notification]`         | email + Slack + webhook |
+
+| Preset | Class | Extra | Notes |
+| --- | --- | --- | --- |
+| Slack | `SlackMCPServer` | `mcp-arena[slack]` | Channels, messages, workflows |
+| WhatsApp | `WhatsAppMCPServer` | `mcp-arena[whatsapp]` | Twilio; needs `TWILIO_*` variables |
+| Gmail | `GmailMCPServer` | `mcp-arena[mail]` | OAuth; needs `credentials.json` |
+| Outlook | `OutlookMCPServer` | `mcp-arena[outlook]` | MSAL |
+| SMTP | `SMTPServer` | core | Outbound email companion |
 
 ### Dev platforms
-| Preset                       | Class                         | Requires                          |
-| ---------------------------- | ----------------------------- | --------------------------------- |
-| GitHub                       | `GithubMCPServer`             | `mcp-arena[github]`               |
-| GitLab                       | `GitLabMCPServer`             | `mcp-arena[gitlab]`               |
-| Bitbucket                    | `BitbucketMCPServer`          | `mcp-arena[bitbucket]`            |
+
+| Preset | Class | Extra |
+| --- | --- | --- |
+| GitHub | `GithubMCPServer` | `mcp-arena[github]` |
+| GitLab | `GitLabMCPServer` | `mcp-arena[gitlab]` |
+| Bitbucket | `BitbucketMCPServer` | `mcp-arena[bitbucket]` |
 
 ### Productivity
-| Preset                       | Class                         | Requires                          |
-| ---------------------------- | ----------------------------- | --------------------------------- |
-| Notion                       | `NotionMCPServer`             | `mcp-arena[notion]`               |
-| Confluence                   | `ConfluenceMCPServer`         | `mcp-arena[bitbucket]` (atlassian-python-api) |
-| Jira                         | `JiraMCPServer`               | `mcp-arena[bitbucket]` (atlassian-python-api) |
 
-### Data & storage
-| Preset                       | Class                         | Requires                          |
-| ---------------------------- | ----------------------------- | --------------------------------- |
-| PostgreSQL                   | `PostgresMCPServer`           | `mcp-arena[postgres]`             |
-| MongoDB                      | `MongoDBMCPServer`            | `mcp-arena[mongodb]`              |
-| Redis                        | `RedisMCPServer`              | `mcp-arena[redis]`                |
-| VectorDB (Chroma)            | `VectorDBMCPServer`           | `mcp-arena[vectordb]`             |
+| Preset | Class | Extra |
+| --- | --- | --- |
+| Notion | `NotionMCPServer` | `mcp-arena[notion]` |
+| Confluence | `ConfluenceMCPServer` | `mcp-arena[bitbucket]` |
+| Jira | `JiraMCPServer` | `mcp-arena[bitbucket]` |
+
+### Data and storage
+
+| Preset | Class | Extra |
+| --- | --- | --- |
+| PostgreSQL | `PostgresMCPServer` | `mcp-arena[postgres]` |
+| MongoDB | `MongoDBMCPServer` | `mcp-arena[mongodb]` |
+| Redis | `RedisMCPServer` | `mcp-arena[redis]` |
+| VectorDB (Chroma) | `VectorDBMCPServer` | `mcp-arena[vectordb]` |
 
 ### Monitoring
-| Preset                       | Class                         | Requires                          | Notes |
-| ---------------------------- | ----------------------------- | --------------------------------- | ----- |
-| Sentry                       | `SentryMCPServer`             | `mcp-arena[sentry]`               | read-only projects, issues, and recent issue events |
 
-### AI / documentation
-| Preset                       | Class                         | Requires                          | Notes |
-| ---------------------------- | ----------------------------- | --------------------------------- | ----- |
-| Context7                     | `Context7MCPServer`           | `mcp-arena[context7]`             | live, version-specific library docs; `resolve_library_id` / `query_docs` / `search_docs`; optional `CONTEXT7_API_KEY` |
+| Preset | Class | Extra | Notes |
+| --- | --- | --- | --- |
+| Sentry | `SentryMCPServer` | `mcp-arena[sentry]` | Read-only projects, issues, and issue events |
 
-### Cloud
-| Preset                       | Class                         | Requires                          |
-| ---------------------------- | ----------------------------- | --------------------------------- |
-| AWS S3                       | `S3MCPServer`                 | `mcp-arena[cloudstorage]` (boto3) |
-| Cloud storage (multi)        | `CloudStorageMCPServer`       | `mcp-arena[cloudstorage]`         |
-| Docker                       | `DockerMCPServer`             | `mcp-arena[docker]`               |
+### AI and documentation
 
-### System / OS
-| Preset                       | Class                         | Requires                          |
-| ---------------------------- | ----------------------------- | --------------------------------- |
-| Local operations             | `LocalOperationsMCPServer`    | `mcp-arena[local_operation]`      |
-| Screen capture               | `ScreenCaptureMCPServer`      | `mcp-arena[screencapture]`        |
+| Preset | Class | Extra | Notes |
+| --- | --- | --- | --- |
+| Context7 | `Context7MCPServer` | `mcp-arena[context7]` | `resolve_library_id`, `query_docs`, `search_docs`; optional `CONTEXT7_API_KEY` |
 
-### Browser / web / media
-| Preset                       | Class                         | Requires                          | Notes |
-| ---------------------------- | ----------------------------- | --------------------------------- | ----- |
-| Browser (Playwright)         | `BrowserMCPServer`            | `mcp-arena[browser]`              | navigate, screenshot, form-fill, OCR |
-| Web scraping                 | `WebScrapingMCPServer`        | `mcp-arena[webscraping]`          | requests + BS4 + selenium |
-| Generic API                  | `GenericAPIMCPServer`         | `mcp-arena[generic_api]`          | generic HTTP wrapper |
-| Image                        | `ImageMCPServer`              | `mcp-arena[image]`                | PIL + OpenCV |
-| Video                        | `VideoMCPServer`              | `mcp-arena[video]`                | moviepy + numpy |
-| Audio                        | `AudioMCPServer`              | `mcp-arena[audio]`                | pydub + librosa |
-| PDF                          | `PDFMCPServer`                | `mcp-arena[pdf]`                  | PyMuPDF + PyPDF2 + reportlab + pdfplumber |
-| QR code                      | `QRCodeMCPServer`             | `mcp-arena[qrcode]`               | generate / decode |
-| Spreadsheet                  | `SpreadsheetMCPServer`        | `mcp-arena[spreadsheet]`          | pandas + openpyxl (xlsx/csv) |
+### Cloud and OS
 
-> The list above is what `mcp_arena/presents/*.py` ships today. Drop a new file in there and it'll auto-appear in the next section.
+| Preset | Class | Extra |
+| --- | --- | --- |
+| AWS S3 | `S3MCPServer` | `mcp-arena[cloudstorage]` |
+| Cloud storage (multi) | `CloudStorageMCPServer` | `mcp-arena[cloudstorage]` |
+| Docker | `DockerMCPServer` | `mcp-arena[docker]` |
+| Local operations | `LocalOperationsMCPServer` | core |
+| Screen capture | `ScreenCaptureMCPServer` | `mcp-arena[screencapture]` |
 
----
+### Browser, web, and media
 
-<a id="custom"></a>
+| Preset | Class | Extra | Notes |
+| --- | --- | --- | --- |
+| Browser (Playwright) | `BrowserMCPServer` | `mcp-arena[browser]` | Navigation, screenshots, form filling, OCR |
+| Web scraping | `WebScrapingMCPServer` | `mcp-arena[webscraping]` | requests, BeautifulSoup, Selenium |
+| Generic API | `GenericAPIMCPServer` | core | Generic HTTP wrapper |
+| Image | `ImageMCPServer` | `mcp-arena[image]` | Pillow and OpenCV |
+| Video | `VideoMCPServer` | `mcp-arena[video]` | moviepy and numpy |
+| Audio | `AudioMCPServer` | `mcp-arena[audio]` | pydub and librosa |
+| PDF | `PDFMCPServer` | `mcp-arena[pdf]` | PyMuPDF, PyPDF2, reportlab, pdfplumber |
+| QR code | `QRCodeMCPServer` | `mcp-arena[qrcode]` | Generate and decode |
+| Spreadsheet | `SpreadsheetMCPServer` | `mcp-arena[spreadsheet]` | pandas and openpyxl |
+
 ## 4. Custom presets
 
 ```python
-# mcp_arena/presents/greeter.py
 from mcp_arena.mcp.server import BaseMCPServer
 
 class GreeterMCPServer(BaseMCPServer):
@@ -163,7 +156,7 @@ class GreeterMCPServer(BaseMCPServer):
             return f"{styles.get(style, 'Hi')}, {name}!"
 ```
 
-Then:
+Save as `mcp_arena/presents/greeter.py`, then import and run it:
 
 ```python
 from mcp_arena.presents import GreeterMCPServer
@@ -172,91 +165,80 @@ server = GreeterMCPServer(name="greeter", description="Greeter")
 server.run()
 ```
 
-The lazy loader in `mcp_arena/presents/__init__.py` walks the directory and AST-parses each `.py`; any class whose name ends in `Server` gets exported under that exact name.
+The loader in `mcp_arena/presents/__init__.py` parses each module with `ast` and exports every class whose name ends in `Server`.
 
-If your custom server lives outside `mcp_arena/presents/` (e.g. in user code), `make_mcp_agent`'s stdio auto-spawn won't find a `python -m` target — start the server yourself and pass it via SSE/HTTP.
+If your server lives outside `mcp_arena/presents/`, the stdio auto-spawn used by `make_mcp_agent` cannot find a `python -m` target. Start the server yourself and connect over SSE or `streamable-http`.
 
----
-
-<a id="running"></a>
 ## 5. Running presets
 
-### Direct
+Directly:
 
 ```python
 from mcp_arena.presents.github import GithubMCPServer
 
-server = GithubMCPServer(token="ghp_…")
-server.run()
+GithubMCPServer(token="ghp_...").run()
 ```
 
-### Choose a transport
+With a transport override:
 
 ```python
-server = GithubMCPServer(token="ghp_…", transport="sse", host="0.0.0.0", port=8001)
-server.run()
+GithubMCPServer(token="ghp_...", transport="sse", host="0.0.0.0", port=8001).run()
 ```
 
-### CLI
+From the CLI:
 
 ```bash
-mcp-arena list            # see all presets
-mcp-arena run github --token "$GITHUB_TOKEN"
-mcp-arena run gmail --help
+mcp-arena list
+mcp-arena info github
+mcp-arena run --mcp-server github --token "$GITHUB_TOKEN"
 ```
 
-### Environment-only instantiation
-
-Most presets read credentials from env vars:
+Using environment variables only:
 
 ```python
-import os
 from mcp_arena.presents.whatsapp import WhatsAppMCPServer
 
-server = WhatsAppMCPServer()  # pulls TWILIO_* from os.environ
-server.run()
+WhatsAppMCPServer().run()
 ```
 
----
+## 6. Using presets with LangChain
 
-<a id="integration"></a>
-## 6. Handing presets to a LangChain agent
-
-This is the main path. See also [`AGENT_GUIDE.md`](AGENT_GUIDE.md) and [`LANGCHAIN_INTEGRATION.md`](LANGCHAIN_INTEGRATION.md).
+The same server objects can be handed to `make_mcp_agent`:
 
 ```python
 import asyncio
+import os
+
 from langchain_openai import ChatOpenAI
 from mcp_arena.agent import make_mcp_agent
 from mcp_arena.presents.github import GithubMCPServer
 from mcp_arena.presents.slack import SlackMCPServer
 
 async def main():
-    llm = ChatOpenAI(model="gpt-4o")
     agent = await make_mcp_agent(
-        llm,
-        [GithubMCPServer(token="ghp_…"), SlackMCPServer(token="xoxb-…")],
+        ChatOpenAI(model="gpt-4o"),
+        [
+            GithubMCPServer(token=os.environ["GITHUB_TOKEN"]),
+            SlackMCPServer(token=os.environ["SLACK_BOT_TOKEN"]),
+        ],
         system_prompt="You can search GitHub and post to Slack.",
     )
-    out = await agent.ainvoke({
-        "messages": [{"role": "user", "content": "Find my top-3 starred repos and DM me the list."}]
+    result = await agent.ainvoke({
+        "messages": [{
+            "role": "user",
+            "content": "Find my top-3 starred repos and DM me the list.",
+        }]
     })
-    print(out["messages"][-1].content)
+    print(result["messages"][-1].content)
 
 asyncio.run(main())
 ```
 
----
+See [Agent Guide](AGENT_GUIDE.md) for tool filtering and forwarded `create_agent` parameters.
 
-<a id="best-practices"></a>
 ## 7. Best practices
 
-**Credentials in env vars, not in code.** Most presets read from `os.environ` first. Override per-instance if you need to.
-
-**One transport per server.** If you need both `stdio` and `http` connections, instantiate the server twice.
-
-**Use stdio for local agent workflows; HTTP/SSE for multi-process or networked setups.** Stdio is the easiest path for `make_mcp_agent`.
-
-**Auto-register is on by default.** Override with `auto_register_tools=False` if you want to call `_register_tools()` later (useful for testing).
-
-**Debug logging lives on the server, not on transport.** Pass `debug=True` to the preset constructor.
+- Keep credentials in environment variables rather than in source code. Presets read from `os.environ` when an argument is omitted.
+- Use one transport per server instance. For both `stdio` and HTTP access, create two instances.
+- Prefer `stdio` for local agent workflows and `streamable-http` or `sse` for networked setups.
+- Set `debug=True` on the constructor when you need verbose logs; it is independent of the transport.

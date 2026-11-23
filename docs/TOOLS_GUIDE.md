@@ -1,126 +1,105 @@
 # Tools Guide
 
-`mcp_arena` only ships one tool concept: **MCP-server tools**. The agent pulls them off a `BaseMCPServer` instance and either passes them straight to a LangChain agent via `make_mcp_agent`, or routes them through `ToolRegistry` for inspection/filtering first.
+`mcp_arena` has one primary tool concept: tools exposed by MCP servers. `make_mcp_agent` can pass them straight to a LangChain agent, or you can route them through `ToolRegistry` to inspect and filter them first. For non-MCP helpers, subclass `BaseTool`.
 
-If you want a tool that isn't an MCP server, subclass `BaseTool` (kept only for that purpose).
+## Contents
 
-## Table of contents
-1. [How tools reach an agent](#path)
-2. [`ToolRegistry` — discover & filter](#registry)
-3. [`BaseTool` — your own non-MCP tool](#base)
-4. [Custom MCP presets](#custom-preset)
-5. [Best practices](#best-practices)
+- [1. How tools reach an agent](#1-how-tools-reach-an-agent)
+- [2. ToolRegistry](#2-toolregistry)
+- [3. BaseTool](#3-basetool)
+- [4. Custom MCP presets](#4-custom-mcp-presets)
+- [5. Best practices](#5-best-practices)
 
----
-
-<a id="path"></a>
 ## 1. How tools reach an agent
 
-```
+```text
 BaseMCPServer instance
-    │  (registers tools via self.mcp_server.tool() inside _register_tools)
-    │
-    │  make_mcp_agent(llm, [server], ...)
-    │     │
-    │     ├── MultiServerMCPClient({server.name: connection}).get_tools()
-    │     ├── (optional) ToolRegistry filter by name / source / rename
-    │     ├── (optional) extra_tools=[BaseTool subclass]
-    │     └── langchain.agents.create_agent(llm, tools, ...)
-    │
-    ▼
+    |
+    |  registers tools with FastMCP inside _register_tools()
+    |  make_mcp_agent(llm, [server], ...)
+    |     |
+    |     +-- MultiServerMCPClient(...).get_tools()
+    |     +-- optional ToolRegistry filtering
+    |     +-- optional extra_tools=[BaseTool subclass]
+    |     +-- langchain.agents.create_agent(llm, tools, ...)
+    v
 Compiled LangGraph runnable
 ```
 
-A `BaseMCPServer` populates `self._registered_tools` (the dict of `{tool_name: function}`) at `_register_tools` time. Both the `MCPAgentWrapper` (for users not on LangChain) and `make_mcp_agent` read it.
+A `BaseMCPServer` populates `_registered_tools` (a `{name: function}` mapping) during construction. Both `MCPAgentWrapper` and `make_mcp_agent` read it.
 
----
-
-<a id="registry"></a>
-## 2. `ToolRegistry` — discover & filter
+## 2. ToolRegistry
 
 ```python
 from mcp_arena.agent import ToolRegistry, make_mcp_agent
 
-reg = ToolRegistry()
-reg.register_server(server_a)
-reg.register_server(server_b)
-reg.register(my_custom_tool)             # extra BaseTool
+registry = ToolRegistry()
+registry.register_server(server_a)
+registry.register_server(server_b)
+registry.register(my_custom_tool)
 
-# Inspect:
-print(reg.names())
-for spec in reg.list():
-    print(spec.source, spec.name, "→", spec.description)
+print(registry.names())
+for spec in registry.list():
+    print(spec.source, spec.name, "->", spec.description)
 
-# Mutate (all methods return self — chainable):
-reg.keep("a", "b", "c")
-reg.drop("debug_only")
-reg.rename("a", "alpha")
-reg.from_source("AudioServer")
+registry.keep("a", "b", "c")
+registry.drop("debug_only")
+registry.rename("a", "alpha")
+registry.from_source("AudioServer")
 ```
 
-### Output formats
+All mutating methods return `self`, so calls can be chained.
+
+Output formats:
 
 ```python
-# Use with LangChain / OpenAI-style agents:
-schemas = reg.to_openai()
-# -> [{"type": "function", "function": {"name": ..., "description": ..., "parameters": ...}}, ...]
+schemas = registry.to_openai()
+callables = registry.get_callables()
 
-# Use with `make_mcp_agent`:
-agent = await make_mcp_agent(llm, [server], names=reg.names())
-
-# Get plain callables for your own agent:
-tools = reg.get_callables()  # {'name': callable}
+agent = await make_mcp_agent(llm, [server], names=registry.names())
 ```
 
-### `ToolSpec`
+`to_openai()` returns OpenAI function-calling schemas; `get_callables()` returns a `{name: callable}` mapping.
+
+Each item in `registry.list()` is a `ToolSpec`:
 
 ```python
 @dataclass
 class ToolSpec:
     name: str
     description: str
-    source: str                 # the server name, or "custom"
+    source: str
     function: Callable[..., Any]
     parameters: Dict[str, Any]
 ```
 
----
-
-<a id="base"></a>
-## 3. `BaseTool` — your own non-MCP tool
+## 3. BaseTool
 
 ```python
-from mcp_arena.agent import BaseTool, make_mcp_agent
+from mcp_arena.agent import BaseTool, ToolRegistry, make_mcp_agent
 
 class UpperTool(BaseTool):
     def __init__(self):
         super().__init__(name="uppercase", description="Capitalise a string")
-    def execute(self, s: str) -> str:
-        return s.upper()
 
-# Inline:
-agent = await make_mcp_agent(
-    llm, [server], extra_tools=[UpperTool()],
-)
+    def execute(self, text: str) -> str:
+        return text.upper()
 
-# Or via the registry:
-reg = ToolRegistry()
-reg.register_server(server)
-reg.register(UpperTool(), name="upper")     # override name
-agent = await make_mcp_agent(llm, [server], names=reg.names())
+agent = await make_mcp_agent(llm, [server], extra_tools=[UpperTool()])
+
+registry = ToolRegistry()
+registry.register_server(server)
+registry.register(UpperTool(), name="upper")
+agent = await make_mcp_agent(llm, [server], names=registry.names())
 ```
 
-> **Removed in 0.4.0:** `CalculatorTool`, `FileSystemTool`, `WebTool`, `DataAnalysisTool`, `TimeTool`, `SearchTool` — use MCP-server tools or subclass `BaseTool`.
+The canned tools (`CalculatorTool`, `FileSystemTool`, `WebTool`, `DataAnalysisTool`, `TimeTool`, `SearchTool`) were removed in 0.4.0. Use MCP-server tools or subclass `BaseTool`.
 
----
-
-<a id="custom-preset"></a>
 ## 4. Custom MCP presets
 
-If your tool needs subprocess isolation, custom transports, or to expose many tools, write an MCP preset:
+For tools that need subprocess isolation, custom transports, or a group of related functions, write an MCP preset:
 
 ```python
-# mcp_arena/presents/hello.py
 from mcp_arena.mcp.server import BaseMCPServer
 
 class HelloMCPServer(BaseMCPServer):
@@ -131,7 +110,7 @@ class HelloMCPServer(BaseMCPServer):
             return f"Hello, {name}!"
 ```
 
-Drop the file in `mcp_arena/presents/` and it'll be auto-discovered:
+Save it as `mcp_arena/presents/hello.py` and it is discovered automatically:
 
 ```python
 from mcp_arena.presents import HelloMCPServer
@@ -139,29 +118,24 @@ from mcp_arena.presents import HelloMCPServer
 server = HelloMCPServer(name="hello", description="Greeter")
 ```
 
-See [`MCP_SERVERS_GUIDE.md`](MCP_SERVERS_GUIDE.md) § "Custom MCP Servers" for the full base-class spec.
+See [MCP Servers Guide](MCP_SERVERS_GUIDE.md#4-custom-presets) for the full base-class specification.
 
----
-
-<a id="best-practices"></a>
 ## 5. Best practices
 
-**Don't overload the model.** A 30-tool agent is a 30-tool agent — drop the irrelevant ones before invoking:
+- **Limit the tool set.** Drop irrelevant tools before invoking the agent:
 
-```python
-reg = ToolRegistry().register_server(server)
-reg.drop("internal_admin", "test_endpoint")
-agent = await make_mcp_agent(llm, [server], names=reg.names())
-```
+  ```python
+  registry = ToolRegistry().register_server(server)
+  registry.drop("internal_admin", "test_endpoint")
+  agent = await make_mcp_agent(llm, [server], names=registry.names())
+  ```
 
-**Use `BaseTool` for trivial helpers.** If your "tool" is just `str.upper()`, don't spin up a whole MCP server — subclass `BaseTool` and pass via `extra_tools`.
+- **Use `BaseTool` for trivial helpers.** A one-line transformation does not need an MCP server; pass it through `extra_tools`.
+- **Use one transport per server instance.** A `BaseMCPServer` exposes a single `transport`; use separate instances for multiple transports.
+- **Write real type hints.** FastMCP infers the JSON schema of each tool from its signature:
 
-**One preset, one transport.** Don't mix `stdio` and `http` on the same server. Each `BaseMCPServer` exposes a single `transport`; multi-transport setups mean multiple server instances.
-
-**Pre-compute `parameters` schemas.** `BaseMCPServer` runs `self.mcp_server.tool()` on each tool, and FastMCP infers the JSON schema from your function signature. So write real type hints:
-
-```python
-def search(query: str, limit: int = 10) -> list[dict]:
-    """Search docs."""
-    ...
-```
+  ```python
+  def search(query: str, limit: int = 10) -> list[dict]:
+      """Search docs."""
+      ...
+  ```
