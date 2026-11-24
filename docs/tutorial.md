@@ -1,42 +1,40 @@
-# Tutorial — building a "Jarvis" personal-assistant agent
+# Tutorial: building a personal-assistant agent
 
-Build an agent that can read your local filesystem, run shell commands, and answer general questions — using `mcp_arena` and `langchain-mcp-adapters`.
+Build an agent that reads your local filesystem, searches GitHub, and chats through a simple UI, using `mcp_arena` and `langchain-mcp-adapters`.
 
-## 0. Install
+## 1. Install
 
 ```bash
 pip install "mcp-arena[local_operation,agents]" langchain-openai
 ```
 
-## 1. Pick the MCP server
+## 2. Start an MCP server
 
 ```python
-# server.py — start this in one terminal
 from mcp_arena.presents.local_operation import LocalOperationsMCPServer
 
 server = LocalOperationsMCPServer(
     host="127.0.0.1",
     port=9000,
-    transport="streamable-http",     # or "sse" / "stdio"
+    transport="streamable-http",
 )
 server.run()
 ```
 
-Run it: `python server.py`. It'll listen on `http://127.0.0.1:9000/mcp` (or `/sse`).
+Save as `server.py` and run `python server.py`. It listens on `http://127.0.0.1:9000/mcp`.
 
-## 2. Build the agent
+## 3. Build the agent
 
 ```python
-# client.py — the LangChain agent
 import asyncio
+
 from langchain_openai import ChatOpenAI
 from mcp_arena.agent import make_mcp_agent
 from mcp_arena.presents.local_operation import LocalOperationsMCPServer
 
 async def main():
-    llm = ChatOpenAI(model="gpt-4o")
     agent = await make_mcp_agent(
-        llm,
+        ChatOpenAI(model="gpt-4o"),
         [LocalOperationsMCPServer(host="127.0.0.1", port=9000, transport="streamable-http")],
         system_prompt=(
             "You can read, write, and search the user's local filesystem. "
@@ -44,24 +42,25 @@ async def main():
         ),
         name="jarvis",
     )
-    out = await agent.ainvoke({"messages": [{
-        "role": "user",
-        "content": "Summarise the README.md in my current directory.",
-    }]})
-    print(out["messages"][-1].content)
+    result = await agent.ainvoke({
+        "messages": [{
+            "role": "user",
+            "content": "Summarise the README.md in my current directory.",
+        }]
+    })
+    print(result["messages"][-1].content)
 
 asyncio.run(main())
 ```
 
-That's it — `make_mcp_agent` does the connection, tool discovery, and agent construction.
+`make_mcp_agent` handles the connection, tool discovery, and agent construction.
 
-## 3. Multi-server
-
-Add GitHub so the agent can also look things up:
+## 4. Add another server
 
 ```python
-from mcp_arena.presents.github import GithubMCPServer
 import os
+
+from mcp_arena.presents.github import GithubMCPServer
 
 agent = await make_mcp_agent(
     llm,
@@ -73,23 +72,23 @@ agent = await make_mcp_agent(
 )
 ```
 
-## 4. Filter the tools
+## 5. Filter the tools
 
-Most agents get bogged down with too many tools. Narrow them with `ToolRegistry`:
+Narrow the tool set so the model is not overwhelmed:
 
 ```python
-from mcp_arena.agent import ToolRegistry, make_mcp_agent
+from mcp_arena.agent import ToolRegistry
 
-reg = ToolRegistry().register_server(local_server)
-print("Available:", reg.names())
-reg.drop("delete_directory", "format_disk")  # safety first
+registry = ToolRegistry().register_server(local_server)
+print(registry.names())
+registry.drop("delete_directory", "format_disk")
 
-agent = await make_mcp_agent(llm, [local_server], names=reg.names())
+agent = await make_mcp_agent(llm, [local_server], names=registry.names())
 ```
 
-## 5. Persistence (memory)
+## 6. Add persistence
 
-For conversational memory across turns, pass a `checkpointer`:
+Pass a LangGraph checkpointer for conversational memory across turns:
 
 ```python
 from langgraph.checkpoint.memory import InMemorySaver
@@ -97,32 +96,31 @@ from langgraph.checkpoint.memory import InMemorySaver
 agent = await make_mcp_agent(
     llm,
     [local_server],
-    checkpointer=InMemorySaver(),   # or PostgresSaver, etc.
-    interrupt_before=["tools"],     # ask before every tool call (HITL)
+    checkpointer=InMemorySaver(),
+    interrupt_before=["tools"],
 )
 ```
 
-See [the langgraph docs](https://langchain-ai.github.io/langgraph/concepts/persistence/) for more checkpointers.
+See the [LangGraph persistence documentation](https://langchain-ai.github.io/langgraph/concepts/persistence/) for other checkpointers.
 
-## 6. Wrap with Gradio (optional)
+## 7. Add a chat UI (optional)
 
 ```python
-import gradio as gr
 import asyncio
 
+import gradio as gr
+
 def chat(message, history):
-    return asyncio.run(agent.ainvoke({
-        "messages": history + [{"role": "user", "content": message}]
-    }))["messages"][-1].content
+    messages = history + [{"role": "user", "content": message}]
+    result = asyncio.run(agent.ainvoke({"messages": messages}))
+    return result["messages"][-1].content
 
 gr.ChatInterface(chat).launch()
 ```
 
-Done. The full Jarvis — local-fs + github + chat UI — in ~20 lines.
+## Next steps
 
-## Where to next
-
-- [`AGENT_GUIDE.md`](AGENT_GUIDE.md) — full `make_mcp_agent` reference and `ToolRegistry`
-- [`LANGCHAIN_INTEGRATION.md`](LANGCHAIN_INTEGRATION.md) — multi-server, transport choices, sync wrapper
-- [`MCP_SERVERS_GUIDE.md`](MCP_SERVERS_GUIDE.md) — every preset in one place
-- [`INSTALLATION.md`](INSTALLATION.md) — extras reference
+- [Agent Guide](AGENT_GUIDE.md) — full `make_mcp_agent` reference and `ToolRegistry`
+- [LangChain Integration](LANGCHAIN_INTEGRATION.md) — multiple servers, transports, sync wrapper
+- [MCP Servers Guide](MCP_SERVERS_GUIDE.md) — every preset in one place
+- [Installation](INSTALLATION.md) — extras reference
